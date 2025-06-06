@@ -1,86 +1,68 @@
 graph TB
     %% External Components
     User["User"]
-    S3Upload["S3 Uploads"]
-    S3Encrypted["S3 Encrypted"]
+    S3Up["S3 Upload"]
+    S3Enc["S3 Encrypt"]
 
     %% Core Services
-    StoreL["Store Lambda"]
-    RetrieveL["Retrieve Lambda"]
-    DB[("PostgreSQL")]
-    KMS["AWS KMS"]
+    Store["Store"]
+    Retrieve["Retrieve"]
+    DB[("Database")]
+    KMS["KMS"]
 
     %% Event Flow
-    S3Event["S3 Event"]
+    Event["Event"]
     
     %% User Interactions
-    User -->|Upload Document| S3Upload
-    User -->|Request Decryption| RetrieveL
+    User --> S3Up
+    User --> Retrieve
 
     %% Automatic Encryption Flow
-    S3Upload -->|Triggers| S3Event
-    S3Event -->|Invokes| StoreL
-    StoreL -->|Get Active Key| DB
-    StoreL -->|KMS Operations| KMS
-    StoreL -->|Store Encrypted| S3Encrypted
+    S3Up --> Event
+    Event --> Store
+    Store --> DB
+    Store --> KMS
+    Store --> S3Enc
 
     %% Decryption Flow
-    RetrieveL -->|Get Private Key| DB
-    RetrieveL -->|Download Package| S3Encrypted
-    RetrieveL -->|Return Decrypted| User
-
-    %% Database Operations
-    StoreL -->|Log Operations| DB
-    RetrieveL -->|Log Access| DB
+    Retrieve --> DB
+    Retrieve --> S3Enc
+    Retrieve --> User
     
     %% Algorithm Details
-    subgraph Algo ["Encryption"]
-        direction LR
-        Kyber["Kyber768"]
-        AES["AES-256"]
+    subgraph Algo ["Crypto"]
+        Kyber["Kyber"]
+        AES["AES"]
         Kyber --> AES
     end
 
-    StoreL -.-> Algo
-    RetrieveL -.-> Algo
+    Store -.-> Algo
+    Retrieve -.-> Algo
 
     %% Database Schema
-    subgraph DBSchema ["Database"]
-        direction TB
-        EncKeys["keys"]
-        AccessLogs["logs"]
-        KeyRotations["rotations"]
+    subgraph DBSchema ["Tables"]
+        Keys["Keys"]
+        Logs["Logs"]
+        Rots["Rotations"]
 
-        EncKeys -.-> AccessLogs
-        EncKeys -.-> KeyRotations
+        Keys -.-> Logs
+        Keys -.-> Rots
     end
 
     DB -.-> DBSchema
-
-    %% Security Features
-    subgraph Security ["Security"]
-        direction TB
-        PQC["Post-Quantum"]
-        KeyRot["Key Rotation"]
-        Audit["Audit Logging"]
-
-        PQC --> KeyRot
-        KeyRot --> Audit
-    end
     
     %% Styling
-    classDef userClass fill:#e1f5fe,stroke:none,font-size:12px,color:#000
-    classDef lambdaClass fill:#fff3e0,stroke:none,font-size:12px,color:#000
-    classDef storageClass fill:#f3e5f5,stroke:none,font-size:12px,color:#000
-    classDef eventClass fill:#e8f5e8,stroke:none,font-size:12px,color:#000
-    classDef algorithmClass fill:#fff8e1,stroke:none,font-size:12px,color:#000
-    classDef dbClass fill:#fce4ec,stroke:none,font-size:12px,color:#000
+    classDef userClass fill:#e1f5fe,stroke:none,font-size:12px,color:#000,min-width:80px
+    classDef lambdaClass fill:#fff3e0,stroke:none,font-size:12px,color:#000,min-width:80px
+    classDef storageClass fill:#f3e5f5,stroke:none,font-size:12px,color:#000,min-width:80px
+    classDef eventClass fill:#e8f5e8,stroke:none,font-size:12px,color:#000,min-width:80px
+    classDef algorithmClass fill:#fff8e1,stroke:none,font-size:12px,color:#000,min-width:80px
+    classDef dbClass fill:#fce4ec,stroke:none,font-size:12px,color:#000,min-width:80px
 
     class User userClass
-    class StoreL,RetrieveL lambdaClass
-    class S3Upload,S3Encrypted storageClass
+    class Store,Retrieve lambdaClass
+    class S3Up,S3Enc storageClass
     class DB,KMS storageClass
-    class S3Event eventClass
+    class Event eventClass
     class Kyber,AES algorithmClass
-    class EncKeys,AccessLogs,KeyRotations dbClass
-    class PQC,KeyRot,Audit eventClass
+    class Keys,Logs,Rots dbClass
