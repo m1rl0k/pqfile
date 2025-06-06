@@ -1,0 +1,82 @@
+graph TB
+    %% External Components
+    User[👤 User] 
+    S3Upload[📁 S3 Bucket<br/>uploads/]
+    S3Encrypted[🔒 S3 Bucket<br/>encrypted/]
+    
+    %% Core Services
+    StoreL[⚡ Store Lambda<br/>Encryption Service]
+    RetrieveL[⚡ Retrieve Lambda<br/>Decryption Service]
+    DB[(🗄️ PostgreSQL<br/>Key Management)]
+    KMS[🔑 AWS KMS<br/>Key Security]
+    
+    %% Event Flow
+    S3Event[📨 S3 Event<br/>Notification]
+    
+    %% User Interactions
+    User -->|1. Upload Document| S3Upload
+    User -->|6. Request Decryption| RetrieveL
+    
+    %% Automatic Encryption Flow
+    S3Upload -->|2. Triggers| S3Event
+    S3Event -->|3. Invokes| StoreL
+    StoreL -->|4a. Get Active Key| DB
+    StoreL -->|4b. KMS Operations| KMS
+    StoreL -->|5. Store Encrypted| S3Encrypted
+    
+    %% Decryption Flow
+    RetrieveL -->|7a. Get Private Key| DB
+    RetrieveL -->|7b. Download Package| S3Encrypted
+    RetrieveL -->|8. Return Decrypted| User
+    
+    %% Database Operations
+    StoreL -->|Log Operations| DB
+    RetrieveL -->|Log Access| DB
+    
+    %% Algorithm Details
+    subgraph "🔐 Encryption Algorithm"
+        direction TB
+        Kyber[Kyber768 KEM<br/>Key Encapsulation]
+        AES[AES-256-CBC<br/>Data Encryption]
+        Kyber --> AES
+    end
+    
+    StoreL -.->|Uses| Kyber
+    RetrieveL -.->|Uses| AES
+    
+    %% Database Schema
+    subgraph "🗄️ Database Schema"
+        direction TB
+        EncKeys[encryption_keys<br/>• public_key<br/>• private_key<br/>• status<br/>• usage_count]
+        AccessLogs[access_logs<br/>• document_id<br/>• access_type<br/>• timestamp]
+        KeyRotations[key_rotations<br/>• old_key_id<br/>• new_key_id<br/>• status]
+        
+        EncKeys -.-> AccessLogs
+        EncKeys -.-> KeyRotations
+    end
+    
+    DB -.-> EncKeys
+    
+    %% Security Features
+    subgraph "🛡️ Security Features"
+        direction TB
+        PQC[Post-Quantum<br/>Cryptography]
+        KeyRot[Automatic<br/>Key Rotation]
+        Audit[Comprehensive<br/>Audit Logging]
+        
+        PQC --> KeyRot
+        KeyRot --> Audit
+    end
+    
+    %% Styling
+    classDef userClass fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+    classDef lambdaClass fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    classDef storageClass fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    classDef securityClass fill:#e8f5e8,stroke:#1b5e20,stroke-width:2px
+    classDef algorithmClass fill:#fff8e1,stroke:#f57f17,stroke-width:2px
+    
+    class User userClass
+    class StoreL,RetrieveL lambdaClass
+    class S3Upload,S3Encrypted,DB storageClass
+    class KMS,PQC,KeyRot,Audit securityClass
+    class Kyber,AES algorithmClass
