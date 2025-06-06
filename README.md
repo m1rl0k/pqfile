@@ -15,16 +15,15 @@ A secure document encryption system using post-quantum cryptography concepts, bu
 ## Architecture
 
 ```mermaid
-%%{init: {"flowchart": {"useMaxWidth": false, "htmlLabels": false, "curve": "basis"}, "theme": "base", "themeVariables": {"primaryColor": "#ffffff", "primaryTextColor": "#000000", "primaryBorderColor": "#666666", "lineColor": "#666666"}}}%%
 graph TB
-    User["User"]
-    S3Upload["S3 Upload Bucket"]
-    S3Encrypted["S3 Encrypted Bucket"]
-    StoreLambda["Store Lambda Function"]
-    RetrieveLambda["Retrieve Lambda Function"]
-    Database[("PostgreSQL Database")]
-    KMSService["AWS KMS Service"]
-    S3Event["S3 Event Notification"]
+    User["   User   "]
+    S3Upload["   S3 Upload Bucket   "]
+    S3Encrypted["   S3 Encrypted Bucket   "]
+    StoreLambda["   Store Lambda Function   "]
+    RetrieveLambda["   Retrieve Lambda Function   "]
+    Database[("   PostgreSQL Database   ")]
+    KMSService["   AWS KMS Service   "]
+    S3Event["   S3 Event Notification   "]
 
     User --> S3Upload
     User --> RetrieveLambda
@@ -37,26 +36,24 @@ graph TB
     RetrieveLambda --> S3Encrypted
     RetrieveLambda --> User
 
-    subgraph CryptoAlgorithm ["Encryption Algorithm"]
-        Kyber768["Kyber768 KEM"]
-        AES256["AES-256-CBC"]
+    subgraph CryptoAlgorithm ["   Encryption Algorithm   "]
+        Kyber768["   Kyber768 KEM   "]
+        AES256["   AES-256-CBC   "]
         Kyber768 --> AES256
     end
 
     StoreLambda -.-> CryptoAlgorithm
     RetrieveLambda -.-> CryptoAlgorithm
 
-    subgraph DatabaseTables ["Database Tables"]
-        EncryptionKeys["encryption_keys"]
-        AccessLogs["access_logs"]
-        KeyRotations["key_rotations"]
+    subgraph DatabaseTables ["   Database Tables   "]
+        EncryptionKeys["   encryption_keys   "]
+        AccessLogs["   access_logs   "]
+        KeyRotations["   key_rotations   "]
         EncryptionKeys -.-> AccessLogs
         EncryptionKeys -.-> KeyRotations
     end
 
     Database -.-> DatabaseTables
-
-    classDef default fill:#ffffff,stroke:#666666,stroke-width:1px,color:#000000
 ```
 
 ## Quick Start
