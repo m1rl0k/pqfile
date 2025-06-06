@@ -22,20 +22,20 @@ graph TB
     Event{S3 Event Notification - Triggered on File Upload} 
     
     %% Flow Connections
-    User -->|1. Upload Document| S3Up
-    User -->|6. Request Decryption| Retrieve
+    User -->|Upload Document| S3Up
+    User -->|Request Decryption| Retrieve
     
     %% Automatic Encryption Flow
-    S3Up -->|2. Triggers Event| Event
-    Event -->|3. Invokes Lambda| Store
-    Store -->|4a. Store Key Data| DB
-    Store -->|4b. Secure Private Key| KMS
-    Store -->|5. Store Encrypted Doc| S3Enc
+    S3Up -->|Triggers Event| Event
+    Event -->|Invokes Lambda| Store
+    Store -->|Store Key Data| DB
+    Store -->|Secure Private Key| KMS
+    Store -->|Store Encrypted Doc| S3Enc
     
     %% Decryption Flow
-    Retrieve -->|7a. Fetch Key Data| DB
-    Retrieve -->|7b. Retrieve Encrypted Doc| S3Enc
-    Retrieve -->|8. Return Decrypted Doc| User
+    Retrieve -->|Fetch Key Data| DB
+    Retrieve -->|Retrieve Encrypted Doc| S3Enc
+    Retrieve -->|Return Decrypted Doc| User
     
     %% Algorithm Details
     subgraph Algo [Crypto Algorithms]
