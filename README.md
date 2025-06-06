@@ -16,13 +16,13 @@ A secure document encryption system using post-quantum cryptography concepts, bu
 
 ```mermaid
 flowchart TD
-    subgraph Client["Client"]
+    subgraph Client
         User[User]
     end
 
     subgraph S3["S3 Buckets"]
-        Upload[Upload Bucket (uploads/)]
-        Encrypted[Encrypted Bucket (encrypted/)]
+        Upload[Upload Bucket - uploads]
+        Encrypted[Encrypted Bucket - encrypted]
     end
 
     subgraph Lambda["Lambda Functions"]
@@ -31,11 +31,11 @@ flowchart TD
     end
 
     subgraph DB["PostgreSQL Database"]
-        DB[(Key Management & Logs)]
+        DB[Key Management and Logs]
     end
 
     subgraph KMS["Key Management"]
-        KMS[AWS KMS (simulated)]
+        KMS[AWS KMS simulated]
     end
 
     subgraph Crypto["Hybrid Encryption"]
@@ -63,8 +63,6 @@ flowchart TD
     AES --> Kyber
     Retrieve -.-> Kyber
     Retrieve --> User
-
-    classDef default fill:#fff,stroke:#333,stroke-width:1.5px
 
 ```
 
