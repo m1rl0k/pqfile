@@ -13,38 +13,73 @@ A secure document encryption system using post-quantum cryptography concepts, bu
 - **End-to-End Testing**: Automated test suite verifying complete workflow
 
 ## Architecture
-
-+-------------+     +-------------------+     +------------------+
-|             |     |                   |     |                  |
-|    User     |---->|  S3 Upload Bucket |---->| Event Notification|
-|             |     |                   |     |                  |
-+-------------+     +-------------------+     +------------------+
-      |                                              |
-      |                                              |
-      |                                              v
-      |                                       +------------+
-      |                                       |            |
-      |                                       | Store      |
-      |                                       | Lambda     |
-      |                                       |            |
-      |                                       +------------+
-      |                                          |  |  |
-      |                                          |  |  |
-      |              +----------------------+    |  |  v
-      |              |                      |<---+  | +---------------+
-      |              |  PostgreSQL Database |       | |               |
-      v              |                      |       | | KMS Service   |
-+-------------+      +----------------------+       | |               |
-|             |              ^                     | +---------------+
-| Retrieve    |              |                     |
-| Lambda      |--------------|---------------------+
-|             |              |                     |
-+-------------+              |                     v
-      |                      |             +------------------+
-      |                      |             |                  |
-      +--------------------------------------------->| S3 Encrypted Bucket |
-                            |             |                  |
-                            +------------>+------------------+
+```
+graph TB
+    %% Define node styles
+    classDef userClass fill:#e1f5fe,stroke:#333,stroke-width:2px
+    classDef lambdaClass fill:#fff3e0,stroke:#333,stroke-width:2px
+    classDef storageClass fill:#f3e5f5,stroke:#333,stroke-width:2px
+    classDef eventClass fill:#e8f5e8,stroke:#333,stroke-width:2px
+    classDef algorithmClass fill:#fff8e1,stroke:#333,stroke-width:2px
+    classDef dbClass fill:#fce4ec,stroke:#333,stroke-width:2px
+    
+    %% External Components
+    User[Client User - Submits and Retrieves Documents] 
+    S3Up[S3 Bucket uploads - Document Upload Storage] 
+    S3Enc[S3 Bucket encrypted - Encrypted Document Storage] 
+    
+    %% Core Services
+    Store[Store Lambda Function - Encrypts Documents and Manages Keys] 
+    Retrieve[Retrieve Lambda Function - Decrypts and Returns Documents] 
+    DB[(PostgreSQL Database - Key and Metadata Storage)] 
+    KMS[AWS KMS Service - Key Management Service] 
+    
+    %% Event Flow
+    Event{S3 Event Notification - Triggered on File Upload} 
+    
+    %% Flow Connections
+    User -->|1. Upload Document| S3Up
+    User -->|6. Request Decryption| Retrieve
+    
+    %% Automatic Encryption Flow
+    S3Up -->|2. Triggers Event| Event
+    Event -->|3. Invokes Lambda| Store
+    Store -->|4a. Store Key Data| DB
+    Store -->|4b. Secure Private Key| KMS
+    Store -->|5. Store Encrypted Doc| S3Enc
+    
+    %% Decryption Flow
+    Retrieve -->|7a. Fetch Key Data| DB
+    Retrieve -->|7b. Retrieve Encrypted Doc| S3Enc
+    Retrieve -->|8. Return Decrypted Doc| User
+    
+    %% Algorithm Details
+    subgraph Algo [Crypto Algorithms]
+        Kyber[Kyber - Post-Quantum Cryptography]
+        AES[AES - Symmetric Encryption]
+        Kyber --> AES
+    end
+    Store -.-> Algo
+    Retrieve -.-> Algo
+    
+    %% Database Schema
+    subgraph DBSchema [Database Tables]
+        Keys[Keys Table]
+        Logs[Logs Table]
+        Rots[Rotations Table]
+        Keys -.-> Logs
+        Keys -.-> Rots
+    end
+    DB -.-> DBSchema
+    
+    %% Apply styles to nodes
+    class User userClass
+    class Store,Retrieve lambdaClass
+    class S3Up,S3Enc,DB,KMS storageClass
+    class Event eventClass
+    class Kyber,AES algorithmClass
+    class Keys,Logs,Rots dbClass
+    ```
 
 ## Quick Start
 
