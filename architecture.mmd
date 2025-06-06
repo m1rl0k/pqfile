@@ -1,17 +1,17 @@
 graph TB
     %% External Components
-    User[👤 User] 
-    S3Upload[📁 S3 Bucket<br/>uploads/]
-    S3Encrypted[🔒 S3 Bucket<br/>encrypted/]
-    
+    User[👤 User]
+    S3Upload[📁 S3 uploads/]
+    S3Encrypted[🔒 S3 encrypted/]
+
     %% Core Services
-    StoreL[⚡ Store Lambda<br/>Encryption Service]
-    RetrieveL[⚡ Retrieve Lambda<br/>Decryption Service]
-    DB[(🗄️ PostgreSQL<br/>Key Management)]
-    KMS[🔑 AWS KMS<br/>Key Security]
-    
+    StoreL[⚡ Store Lambda]
+    RetrieveL[⚡ Retrieve Lambda]
+    DB[(🗄️ PostgreSQL)]
+    KMS[🔑 AWS KMS]
+
     %% Event Flow
-    S3Event[📨 S3 Event<br/>Notification]
+    S3Event[📨 S3 Event]
     
     %% User Interactions
     User -->|1. Upload Document| S3Upload
@@ -34,10 +34,10 @@ graph TB
     RetrieveL -->|Log Access| DB
     
     %% Algorithm Details
-    subgraph "🔐 Encryption Algorithm"
+    subgraph "🔐 Encryption"
         direction TB
-        Kyber[Kyber768 KEM<br/>Key Encapsulation]
-        AES[AES-256-CBC<br/>Data Encryption]
+        Kyber[Kyber768 KEM]
+        AES[AES-256-CBC]
         Kyber --> AES
     end
     
@@ -45,12 +45,12 @@ graph TB
     RetrieveL -.->|Uses| AES
     
     %% Database Schema
-    subgraph "🗄️ Database Schema"
+    subgraph "🗄️ Database"
         direction TB
-        EncKeys[encryption_keys<br/>• public_key<br/>• private_key<br/>• status<br/>• usage_count]
-        AccessLogs[access_logs<br/>• document_id<br/>• access_type<br/>• timestamp]
-        KeyRotations[key_rotations<br/>• old_key_id<br/>• new_key_id<br/>• status]
-        
+        EncKeys[encryption_keys]
+        AccessLogs[access_logs]
+        KeyRotations[key_rotations]
+
         EncKeys -.-> AccessLogs
         EncKeys -.-> KeyRotations
     end
