@@ -1,17 +1,17 @@
 graph TB
     %% External Components
     User["User"]
-    S3Upload["S3 Uploads Bucket"]
-    S3Encrypted["S3 Encrypted Bucket"]
+    S3Upload["S3 Uploads"]
+    S3Encrypted["S3 Encrypted"]
 
     %% Core Services
-    StoreL["Store Lambda Function"]
-    RetrieveL["Retrieve Lambda Function"]
-    DB[("PostgreSQL Database")]
-    KMS["AWS KMS Service"]
+    StoreL["Store Lambda"]
+    RetrieveL["Retrieve Lambda"]
+    DB[("PostgreSQL")]
+    KMS["AWS KMS"]
 
     %% Event Flow
-    S3Event["S3 Event Notification"]
+    S3Event["S3 Event"]
     
     %% User Interactions
     User -->|Upload Document| S3Upload
@@ -34,35 +34,35 @@ graph TB
     RetrieveL -->|Log Access| DB
     
     %% Algorithm Details
-    subgraph Algo ["Encryption Algorithm"]
+    subgraph Algo ["Encryption"]
         direction LR
-        Kyber["Kyber768 KEM"]
-        AES["AES-256-CBC"]
+        Kyber["Kyber768"]
+        AES["AES-256"]
         Kyber --> AES
     end
 
-    StoreL -.->|Uses| Algo
-    RetrieveL -.->|Uses| Algo
+    StoreL -.-> Algo
+    RetrieveL -.-> Algo
 
     %% Database Schema
-    subgraph DBSchema ["Database Tables"]
+    subgraph DBSchema ["Database"]
         direction TB
-        EncKeys["encryption_keys"]
-        AccessLogs["access_logs"]
-        KeyRotations["key_rotations"]
+        EncKeys["keys"]
+        AccessLogs["logs"]
+        KeyRotations["rotations"]
 
         EncKeys -.-> AccessLogs
         EncKeys -.-> KeyRotations
     end
 
-    DB -.->|Contains| DBSchema
+    DB -.-> DBSchema
 
     %% Security Features
-    subgraph Security ["Security Features"]
+    subgraph Security ["Security"]
         direction TB
-        PQC["Post-Quantum Cryptography"]
-        KeyRot["Automatic Key Rotation"]
-        Audit["Comprehensive Audit Logging"]
+        PQC["Post-Quantum"]
+        KeyRot["Key Rotation"]
+        Audit["Audit Logging"]
 
         PQC --> KeyRot
         KeyRot --> Audit
