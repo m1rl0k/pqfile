@@ -15,15 +15,16 @@ A secure document encryption system using post-quantum cryptography concepts, bu
 ## Architecture
 
 ```mermaid
+%%{init: {"flowchart": {"htmlLabels": true, "curve": "linear"}, "theme": "base"}}%%
 graph TB
-    User["   User   "]
-    S3Upload["   S3 Upload Bucket   "]
-    S3Encrypted["   S3 Encrypted Bucket   "]
-    StoreLambda["   Store Lambda Function   "]
-    RetrieveLambda["   Retrieve Lambda Function   "]
-    Database[("   PostgreSQL Database   ")]
-    KMSService["   AWS KMS Service   "]
-    S3Event["   S3 Event Notification   "]
+    User["User<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"]
+    S3Upload["S3 Upload Bucket<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"]
+    S3Encrypted["S3 Encrypted Bucket<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"]
+    StoreLambda["Store Lambda Function<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"]
+    RetrieveLambda["Retrieve Lambda Function<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"]
+    Database[("PostgreSQL Database<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;")]
+    KMSService["AWS KMS Service<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"]
+    S3Event["S3 Event Notification<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"]
 
     User --> S3Upload
     User --> RetrieveLambda
@@ -36,19 +37,19 @@ graph TB
     RetrieveLambda --> S3Encrypted
     RetrieveLambda --> User
 
-    subgraph CryptoAlgorithm ["   Encryption Algorithm   "]
-        Kyber768["   Kyber768 KEM   "]
-        AES256["   AES-256-CBC   "]
+    subgraph CryptoAlgorithm ["Encryption Algorithm"]
+        Kyber768["Kyber768 KEM<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"]
+        AES256["AES-256-CBC<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"]
         Kyber768 --> AES256
     end
 
     StoreLambda -.-> CryptoAlgorithm
     RetrieveLambda -.-> CryptoAlgorithm
 
-    subgraph DatabaseTables ["   Database Tables   "]
-        EncryptionKeys["   encryption_keys   "]
-        AccessLogs["   access_logs   "]
-        KeyRotations["   key_rotations   "]
+    subgraph DatabaseTables ["Database Tables"]
+        EncryptionKeys["encryption_keys<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"]
+        AccessLogs["access_logs<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"]
+        KeyRotations["key_rotations<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"]
         EncryptionKeys -.-> AccessLogs
         EncryptionKeys -.-> KeyRotations
     end
