@@ -1,56 +1,56 @@
-flowchart TB
+graph TB
     %% Define node styles
-    classDef userClass fill:#e1f5fe,stroke:#333,stroke-width:2px,font-size:12px,color:#000
-    classDef lambdaClass fill:#fff3e0,stroke:#333,stroke-width:2px,font-size:12px,color:#000
-    classDef storageClass fill:#f3e5f5,stroke:#333,stroke-width:2px,font-size:12px,color:#000
-    classDef eventClass fill:#e8f5e8,stroke:#333,stroke-width:2px,font-size:12px,color:#000
-    classDef algorithmClass fill:#fff8e1,stroke:#333,stroke-width:2px,font-size:12px,color:#000
-    classDef dbClass fill:#fce4ec,stroke:#333,stroke-width:2px,font-size:12px,color:#000
+    classDef userClass fill:#e1f5fe,stroke:#333,stroke-width:2px
+    classDef lambdaClass fill:#fff3e0,stroke:#333,stroke-width:2px
+    classDef storageClass fill:#f3e5f5,stroke:#333,stroke-width:2px
+    classDef eventClass fill:#e8f5e8,stroke:#333,stroke-width:2px
+    classDef algorithmClass fill:#fff8e1,stroke:#333,stroke-width:2px
+    classDef dbClass fill:#fce4ec,stroke:#333,stroke-width:2px
     
     %% External Components
-    User["Client User<br/>Submits & Retrieves Documents"] 
-    S3Up["S3 Bucket (uploads/)<br/>Document Upload Storage"] 
-    S3Enc["S3 Bucket (encrypted/)<br/>Encrypted Document Storage"] 
+    User[Client User - Submits and Retrieves Documents] 
+    S3Up[S3 Bucket uploads - Document Upload Storage] 
+    S3Enc[S3 Bucket encrypted - Encrypted Document Storage] 
     
     %% Core Services
-    Store["Store Lambda Function<br/>Encrypts Documents & Manages Keys"] 
-    Retrieve["Retrieve Lambda Function<br/>Decrypts & Returns Documents"] 
-    DB[("PostgreSQL Database<br/>Key & Metadata Storage")] 
-    KMS["AWS KMS Service<br/>Key Management Service"] 
+    Store[Store Lambda Function - Encrypts Documents and Manages Keys] 
+    Retrieve[Retrieve Lambda Function - Decrypts and Returns Documents] 
+    DB[(PostgreSQL Database - Key and Metadata Storage)] 
+    KMS[AWS KMS Service - Key Management Service] 
     
     %% Event Flow
-    Event{"S3 Event Notification<br/>Triggered on File Upload"} 
+    Event{S3 Event Notification - Triggered on File Upload} 
     
     %% Flow Connections
-    User -->|"1. Upload Document"| S3Up
-    User -->|"6. Request Decryption"| Retrieve
+    User -->|1. Upload Document| S3Up
+    User -->|6. Request Decryption| Retrieve
     
     %% Automatic Encryption Flow
-    S3Up -->|"2. Triggers Event"| Event
-    Event -->|"3. Invokes Lambda"| Store
-    Store -->|"4a. Store Key Data"| DB
-    Store -->|"4b. Secure Private Key"| KMS
-    Store -->|"5. Store Encrypted Doc"| S3Enc
+    S3Up -->|2. Triggers Event| Event
+    Event -->|3. Invokes Lambda| Store
+    Store -->|4a. Store Key Data| DB
+    Store -->|4b. Secure Private Key| KMS
+    Store -->|5. Store Encrypted Doc| S3Enc
     
     %% Decryption Flow
-    Retrieve -->|"7a. Fetch Key Data"| DB
-    Retrieve -->|"7b. Retrieve Encrypted Doc"| S3Enc
-    Retrieve -->|"8. Return Decrypted Doc"| User
+    Retrieve -->|7a. Fetch Key Data| DB
+    Retrieve -->|7b. Retrieve Encrypted Doc| S3Enc
+    Retrieve -->|8. Return Decrypted Doc| User
     
     %% Algorithm Details
-    subgraph Algo ["Crypto Algorithms"]
-        Kyber["Kyber<br/>Post-Quantum Cryptography"]
-        AES["AES<br/>Symmetric Encryption"]
+    subgraph Algo [Crypto Algorithms]
+        Kyber[Kyber - Post-Quantum Cryptography]
+        AES[AES - Symmetric Encryption]
         Kyber --> AES
     end
     Store -.-> Algo
     Retrieve -.-> Algo
     
     %% Database Schema
-    subgraph DBSchema ["Database Tables"]
-        Keys["Keys Table"]
-        Logs["Logs Table"]
-        Rots["Rotations Table"]
+    subgraph DBSchema [Database Tables]
+        Keys[Keys Table]
+        Logs[Logs Table]
+        Rots[Rotations Table]
         Keys -.-> Logs
         Keys -.-> Rots
     end
