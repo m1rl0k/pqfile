@@ -16,57 +16,44 @@ A secure document encryption system using post-quantum cryptography concepts, bu
 
 ```mermaid
 graph TB
-    %% External Components
-    User["User"]
-    S3Up["S3 Upload"]
-    S3Enc["S3 Encrypt"]
+    A[User]
+    B[S3Up]
+    C[S3Enc]
+    D[Store]
+    E[Retrieve]
+    F[(DB)]
+    G[KMS]
+    H[Event]
 
-    %% Core Services
-    Store["Store"]
-    Retrieve["Retrieve"]
-    DB[("Database")]
-    KMS["KMS"]
+    A --> B
+    A --> E
+    B --> H
+    H --> D
+    D --> F
+    D --> G
+    D --> C
+    E --> F
+    E --> C
+    E --> A
 
-    %% Event Flow
-    Event["Event"]
-
-    %% User Interactions
-    User --> S3Up
-    User --> Retrieve
-
-    %% Automatic Encryption Flow
-    S3Up --> Event
-    Event --> Store
-    Store --> DB
-    Store --> KMS
-    Store --> S3Enc
-
-    %% Decryption Flow
-    Retrieve --> DB
-    Retrieve --> S3Enc
-    Retrieve --> User
-
-    %% Algorithm Details
-    subgraph Algo ["Crypto"]
-        Kyber["Kyber"]
-        AES["AES"]
-        Kyber --> AES
+    subgraph I [Crypto]
+        J[Kyber]
+        K[AES]
+        J --> K
     end
 
-    Store -.-> Algo
-    Retrieve -.-> Algo
+    D -.-> I
+    E -.-> I
 
-    %% Database Schema
-    subgraph DBSchema ["Tables"]
-        Keys["Keys"]
-        Logs["Logs"]
-        Rots["Rotations"]
-
-        Keys -.-> Logs
-        Keys -.-> Rots
+    subgraph L [Tables]
+        M[Keys]
+        N[Logs]
+        O[Rots]
+        M -.-> N
+        M -.-> O
     end
 
-    DB -.-> DBSchema
+    F -.-> L
 ```
 
 ## Quick Start
