@@ -36,8 +36,8 @@ graph TB
     %% Algorithm Details
     subgraph Algo ["Encryption Algorithm"]
         direction LR
-        Kyber["Kyber768 KEM<br/>Key Encapsulation"]
-        AES["AES-256-CBC<br/>Data Encryption"]
+        Kyber["Kyber768 KEM"]
+        AES["AES-256-CBC"]
         Kyber --> AES
     end
 
@@ -47,9 +47,9 @@ graph TB
     %% Database Schema
     subgraph DBSchema ["Database Tables"]
         direction TB
-        EncKeys["encryption_keys<br/>Stores key pairs"]
-        AccessLogs["access_logs<br/>Audit trail"]
-        KeyRotations["key_rotations<br/>Rotation management"]
+        EncKeys["encryption_keys"]
+        AccessLogs["access_logs"]
+        KeyRotations["key_rotations"]
 
         EncKeys -.-> AccessLogs
         EncKeys -.-> KeyRotations
@@ -60,21 +60,21 @@ graph TB
     %% Security Features
     subgraph Security ["Security Features"]
         direction TB
-        PQC["Post-Quantum<br/>Cryptography"]
-        KeyRot["Automatic<br/>Key Rotation"]
-        Audit["Comprehensive<br/>Audit Logging"]
+        PQC["Post-Quantum Cryptography"]
+        KeyRot["Automatic Key Rotation"]
+        Audit["Comprehensive Audit Logging"]
 
         PQC --> KeyRot
         KeyRot --> Audit
     end
     
     %% Styling
-    classDef userClass fill:#e1f5fe,stroke:#01579b,stroke-width:2px,font-size:14px,color:#000
-    classDef lambdaClass fill:#fff3e0,stroke:#e65100,stroke-width:2px,font-size:14px,color:#000
-    classDef storageClass fill:#f3e5f5,stroke:#4a148c,stroke-width:2px,font-size:14px,color:#000
-    classDef eventClass fill:#e8f5e8,stroke:#1b5e20,stroke-width:2px,font-size:14px,color:#000
-    classDef algorithmClass fill:#fff8e1,stroke:#f57f17,stroke-width:2px,font-size:14px,color:#000
-    classDef dbClass fill:#fce4ec,stroke:#880e4f,stroke-width:2px,font-size:14px,color:#000
+    classDef userClass fill:#e1f5fe,stroke:none,font-size:14px,color:#000
+    classDef lambdaClass fill:#fff3e0,stroke:none,font-size:14px,color:#000
+    classDef storageClass fill:#f3e5f5,stroke:none,font-size:14px,color:#000
+    classDef eventClass fill:#e8f5e8,stroke:none,font-size:14px,color:#000
+    classDef algorithmClass fill:#fff8e1,stroke:none,font-size:14px,color:#000
+    classDef dbClass fill:#fce4ec,stroke:none,font-size:14px,color:#000
 
     class User userClass
     class StoreL,RetrieveL lambdaClass
