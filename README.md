@@ -16,70 +16,40 @@ A secure document encryption system using post-quantum cryptography concepts, bu
 
 ```mermaid
 flowchart TB
-    subgraph Client["Client Layer"]
-        User[User]
-    end
-
-    subgraph Storage["S3 Storage"]
-        S3Upload[S3 Upload Bucket]
-        S3Encrypted[S3 Encrypted Bucket]
-    end
-
-    subgraph Processing["Lambda Functions"]
-        direction LR
-        StoreLambda[Store Lambda]
-        RetrieveLambda[Retrieve Lambda]
-    end
-
-    subgraph Database["Database Layer"]
-        PostgreSQL[(PostgreSQL)]
-        KMS[AWS KMS]
-    end
-
-    subgraph Algorithm["Encryption Algorithm"]
-        direction LR
-        Kyber[Kyber768 KEM]
-        AES[AES-256-CBC]
-    end
-
-    subgraph Schema["Database Schema"]
-        direction TB
-        EncKeys[encryption_keys]
-        AccessLogs[access_logs]
-        KeyRotations[key_rotations]
-    end
-
-    User-->S3Upload
-    User-->RetrieveLambda
-    S3Upload-->|S3 Event|StoreLambda
-    StoreLambda-->PostgreSQL
-    StoreLambda-->KMS
-    StoreLambda-->S3Encrypted
-    RetrieveLambda-->PostgreSQL
-    RetrieveLambda-->S3Encrypted
-    RetrieveLambda-->User
-
-    StoreLambda-.->Algorithm
-    RetrieveLambda-.->Algorithm
-    Kyber-->AES
-
-    PostgreSQL-.->Schema
-    EncKeys-.->AccessLogs
-    EncKeys-.->KeyRotations
-
-    classDef client fill:#fff,stroke:#666,stroke-width:1px
-    classDef storage fill:#fff,stroke:#666,stroke-width:1px
-    classDef processing fill:#fff,stroke:#666,stroke-width:1px
-    classDef database fill:#fff,stroke:#666,stroke-width:1px
-    classDef algorithm fill:#fff,stroke:#666,stroke-width:1px
-    classDef schema fill:#fff,stroke:#666,stroke-width:1px
-
-    class User client
-    class S3Upload,S3Encrypted storage
-    class StoreLambda,RetrieveLambda processing
-    class PostgreSQL,KMS database
-    class Kyber,AES algorithm
-    class EncKeys,AccessLogs,KeyRotations schema
+subgraph Client["Client"]
+User[User]
+end
+subgraph Storage["S3 Storage"]
+Upload[Upload Bucket]
+Encrypted[Encrypted Bucket]
+end
+subgraph Lambda["Lambda Functions"]
+direction LR
+Store[Store Lambda]
+Retrieve[Retrieve Lambda]
+end
+subgraph Database["Database"]
+DB[(PostgreSQL)]
+KMS[AWS KMS]
+end
+subgraph Crypto["Encryption"]
+direction LR
+Kyber[Kyber768]
+AES[AES-256]
+end
+User-->Upload
+User-->Retrieve
+Upload-->Store
+Store-->DB
+Store-->KMS
+Store-->Encrypted
+Retrieve-->DB
+Retrieve-->Encrypted
+Retrieve-->User
+Store-.->Crypto
+Retrieve-.->Crypto
+Kyber-->AES
+classDef default fill:#fff,stroke:#666,stroke-width:1px
 ```
 
 ## Quick Start
