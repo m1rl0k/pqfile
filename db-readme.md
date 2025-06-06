@@ -28,7 +28,8 @@ CREATE TABLE encryption_keys (
     status VARCHAR(20) DEFAULT 'active',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     expires_at TIMESTAMP,
-    usage_count INTEGER DEFAULT 0
+    usage_count INTEGER DEFAULT 0,
+    CONSTRAINT status_check CHECK (status IN ('active', 'rotation_queued', 'expired', 'revoked'))
 );
 ```
 

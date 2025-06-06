@@ -11,18 +11,16 @@ import zipfile
 import boto3
 import subprocess
 import requests
-import psycopg2
-import shutil
-from psycopg2.extras import DictCursor
+import pg8000.native
 
 # Configuration
 LOCALSTACK_ENDPOINT = "http://localhost:4566"
 DB_CONFIG = {
-    'dbname': 'pqfile_db',
+    'database': 'pqfile_db',
     'user': 'postgres',
     'password': 'postgres',
     'host': 'localhost',
-    'port': '5432',
+    'port': 5432,
 }
 BUCKET_NAME = "documents"
 TEST_DOCUMENT = "This is a test document for encryption and decryption. It needs to be exactly 100 characters to test properly." + "A" * 22
@@ -105,43 +103,41 @@ def wait_for_services():
     for attempt in range(max_attempts):
         try:
             # Modified to handle connection retries better
-            conn = psycopg2.connect(
+            conn = pg8000.native.Connection(
                 host=DB_CONFIG['host'],
                 port=DB_CONFIG['port'],
                 user=DB_CONFIG['user'],
                 password=DB_CONFIG['password'],
-                connect_timeout=5
+                database='postgres'
             )
             conn.close()
             print("PostgreSQL is ready!")
-            
+
             # Now try to connect to the specific database
             try:
-                conn = psycopg2.connect(**DB_CONFIG)
+                conn = pg8000.native.Connection(**DB_CONFIG)
                 conn.close()
-                print(f"Database '{DB_CONFIG['dbname']}' is accessible!")
+                print(f"Database '{DB_CONFIG['database']}' is accessible!")
                 break
-            except psycopg2.OperationalError as e:
+            except Exception as e:
                 if 'does not exist' in str(e):
                     # Create the database if it doesn't exist
-                    print(f"Database '{DB_CONFIG['dbname']}' does not exist. Creating it...")
-                    conn = psycopg2.connect(
+                    print(f"Database '{DB_CONFIG['database']}' does not exist. Creating it...")
+                    conn = pg8000.native.Connection(
                         host=DB_CONFIG['host'],
                         port=DB_CONFIG['port'],
                         user=DB_CONFIG['user'],
                         password=DB_CONFIG['password'],
-                        dbname='postgres'
+                        database='postgres'
                     )
-                    conn.autocommit = True
-                    with conn.cursor() as cur:
-                        cur.execute(f"CREATE DATABASE {DB_CONFIG['dbname']}")
+                    conn.run(f"CREATE DATABASE {DB_CONFIG['database']}")
                     conn.close()
-                    print(f"Created database '{DB_CONFIG['dbname']}'")
+                    print(f"Created database '{DB_CONFIG['database']}'")
                     break
                 else:
                     raise
-                
-        except psycopg2.OperationalError:
+
+        except Exception:
             print(f"Waiting for PostgreSQL... ({attempt+1}/{max_attempts})")
             time.sleep(2)
     
@@ -255,48 +251,32 @@ def create_test_document():
     """Create and upload a test document to trigger the Lambda function"""
     try:
         # Initialize database and create test key if needed
-        conn = psycopg2.connect(**DB_CONFIG)
-        with conn.cursor(cursor_factory=DictCursor) as cur:
-            # Check if the tables exist first
-            try:
-                cur.execute("SELECT COUNT(*) FROM encryption_keys")
-                key_count = cur.fetchone()[0]
-                if key_count == 0:
-                    print("No encryption keys found. Creating a test key...")
-                    # This would normally be done by the Lambda function
-                    # But for testing purposes, we'll create one directly
-                    cur.execute("""
-                        INSERT INTO encryption_keys 
-                        (public_key, private_key) 
-                        VALUES (%s, %s)
-                    """, (
-                        base64.b64encode(b"TEST_PUBLIC_KEY").decode('utf-8'),
-                        base64.b64encode(b"TEST_PRIVATE_KEY").decode('utf-8')
-                    ))
-                    print("Created test encryption key")
-                else:
-                    print(f"Found {key_count} existing encryption keys")
-            except psycopg2.errors.UndefinedTable:
+        conn = pg8000.native.Connection(**DB_CONFIG)
+        # Check if the tables exist first
+        try:
+            rows = conn.run("SELECT COUNT(*) FROM encryption_keys")
+            key_count = rows[0][0]
+            if key_count == 0:
+                print("No encryption keys found. The store_lambda will generate one automatically.")
+            else:
+                print(f"Found {key_count} existing encryption keys")
+        except Exception as e:
+            if 'does not exist' in str(e) or 'relation' in str(e):
                 print("Database tables don't exist yet. Need to initialize schema.")
                 print("Running init.sql script...")
                 # Read and execute the init.sql file
                 with open('init.sql', 'r') as f:
                     sql_init = f.read()
-                    cur.execute(sql_init)
-                    conn.commit()
+                    # Split by semicolons and execute each statement
+                    statements = [stmt.strip() for stmt in sql_init.split(';') if stmt.strip()]
+                    for stmt in statements:
+                        if stmt:
+                            conn.run(stmt)
                     print("Database schema initialized")
-                    
-                # Now create the test key
-                cur.execute("""
-                    INSERT INTO encryption_keys 
-                    (public_key, private_key) 
-                    VALUES (%s, %s)
-                """, (
-                    base64.b64encode(b"TEST_PUBLIC_KEY").decode('utf-8'),
-                    base64.b64encode(b"TEST_PRIVATE_KEY").decode('utf-8')
-                ))
-                print("Created test encryption key")
-                conn.commit()
+
+                print("Database schema initialized. The store_lambda will generate keys automatically.")
+            else:
+                raise
         conn.close()
         
         # Upload test document to S3

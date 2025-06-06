@@ -6,6 +6,7 @@ import base64
 import hashlib
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.primitives import padding
+import pqcrypto.kem.ml_kem_768
 
 # Configuration
 DB_CONFIG = {
@@ -41,9 +42,7 @@ else:
     # Running in real AWS - use IAM role
     kms_client = boto3.client('kms', region_name='us-east-1')
 
-# Simulating Kyber constants for example purposes
-KYBER_CIPHERTEXT_SIZE = 1088
-KYBER_SHARED_SECRET_SIZE = 32
+# Real cryptographic implementation using ML-KEM-768 (Kyber768) + AES-256
 
 def get_key_by_id(key_id):
     """Retrieve encryption key by ID"""
@@ -73,8 +72,10 @@ def log_document_access(document_id):
     try:
         conn.run("""
             INSERT INTO access_logs (document_id, access_type)
-            VALUES (:document_id, 'download')
-        """, document_id=document_id)
+            VALUES (:document_id, :access_type)
+        """, document_id=document_id, access_type='decrypt')
+    except Exception as e:
+        print(f"Warning: Failed to log document access: {e}")
     finally:
         conn.close()
 
@@ -101,20 +102,20 @@ def decrypt_document(encrypted_package):
     ciphertext = base64.b64decode(ciphertext_b64)
     iv = base64.b64decode(iv_b64)
     encrypted_data = base64.b64decode(encrypted_data_b64)
-    
+
     # Get the key from the database
     key = get_key_by_id(key_id)
-    
-    # Load private key
+    print(f"Debug: Retrieved key ID {key_id}")
+    print(f"Debug: Private key base64 length: {len(key['private_key'])}")
+
+    # Load private key from base64
     private_key = base64.b64decode(key['private_key'])
-    
-    # In a real implementation:
-    # shared_secret = pqcrypto.kem.kyber.Kyber768.decapsulate(ciphertext, private_key)
-    
-    # For this example, we'll simulate the decapsulation
-    public_key = base64.b64decode(key['public_key'])
-    shared_secret = hashlib.sha256(ciphertext + public_key).digest()
-    
+    print(f"Debug: Private key length after decode: {len(private_key)} bytes")
+    print(f"Debug: Expected length: 2400 bytes")
+
+    # Use ML-KEM-768 to decapsulate the shared secret (correct argument order!)
+    shared_secret = pqcrypto.kem.ml_kem_768.decrypt(private_key, ciphertext)
+
     # Convert shared secret to an AES key
     aes_key = hashlib.sha256(shared_secret).digest()
     
@@ -159,6 +160,10 @@ def lambda_handler(event, context):
         
         # Decrypt the document
         document_data = decrypt_document(encrypted_package)
+
+        # Log the decryption operation
+        document_id = encrypted_package.get('metadata', {}).get('document_id', 'unknown')
+        log_document_access(document_id)
         
         # Check output format preference
         output_format = body.get('output_format', 'base64')

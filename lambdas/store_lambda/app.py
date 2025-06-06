@@ -9,9 +9,8 @@ import hashlib
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.primitives import padding
 
-# In a real implementation, you would use a proper PQ crypto library
-# For this example, we'll simulate Kyber with comments on what would happen
-# import pqcrypto.kem.kyber
+# Real post-quantum cryptography implementation using ML-KEM-768 (Kyber768) + AES
+import pqcrypto.kem.ml_kem_768
 
 # Configuration
 DB_CONFIG = {
@@ -47,10 +46,10 @@ else:
     # Running in real AWS - use IAM role
     kms_client = boto3.client('kms', region_name='us-east-1')
 
-# Simulating Kyber constants for example purposes
-KYBER_PUBLIC_KEY_SIZE = 1184
-KYBER_PRIVATE_KEY_SIZE = 2400
-KYBER_CIPHERTEXT_SIZE = 1088
+# Real ML-KEM-768 constants from the library
+KYBER_PUBLIC_KEY_SIZE = pqcrypto.kem.ml_kem_768.PUBLIC_KEY_SIZE
+KYBER_PRIVATE_KEY_SIZE = pqcrypto.kem.ml_kem_768.SECRET_KEY_SIZE
+KYBER_CIPHERTEXT_SIZE = pqcrypto.kem.ml_kem_768.CIPHERTEXT_SIZE
 KYBER_SHARED_SECRET_SIZE = 32
 
 def get_active_key():
@@ -83,14 +82,23 @@ def get_active_key():
     finally:
         conn.close()
 
+def log_operation(operation_type, document_id=None, key_id=None):
+    """Log operations for audit and tracking purposes"""
+    conn = get_db_connection()
+    try:
+        conn.run("""
+            INSERT INTO access_logs (document_id, access_type)
+            VALUES (:document_id, :access_type)
+        """, document_id=document_id or 'unknown', access_type=operation_type)
+    except Exception as e:
+        print(f"Warning: Failed to log operation {operation_type}: {e}")
+    finally:
+        conn.close()
+
 def create_new_key(conn=None):
-    """Create a new encryption key pair and store in KMS"""
-    # In a real implementation:
-    # public_key, private_key = pqcrypto.kem.kyber.Kyber768.keygen()
-    
-    # For this example, we'll generate random bytes to simulate the keys
-    public_key = os.urandom(KYBER_PUBLIC_KEY_SIZE)
-    private_key = os.urandom(KYBER_PRIVATE_KEY_SIZE)
+    """Create a new ML-KEM-768 (Kyber768) encryption key pair for post-quantum security"""
+    # Generate a real ML-KEM-768 key pair
+    public_key, private_key = pqcrypto.kem.ml_kem_768.generate_keypair()
     
     # Encode keys to base64 for storage
     public_key_b64 = base64.b64encode(public_key).decode('utf-8')
@@ -180,33 +188,30 @@ def check_for_keys_to_rotate():
     finally:
         conn.close()
 
-def encrypt_document(document_data, key=None):
+
+def encrypt_document(document_data, key=None, document_id=None):
     """Encrypt a document with post-quantum cryptography"""
     if key is None:
         key = get_active_key()
-    
-    # Load public key
+
+    # Load public key from base64
     public_key = base64.b64decode(key['public_key'])
-    
-    # In a real implementation:
-    # ciphertext, shared_secret = pqcrypto.kem.kyber.Kyber768.encapsulate(public_key)
-    
-    # For this example, we'll simulate the encapsulation
-    ciphertext = os.urandom(KYBER_CIPHERTEXT_SIZE)
-    shared_secret = hashlib.sha256(ciphertext + public_key).digest()
-    
+
+    # Use ML-KEM-768 to encapsulate a shared secret
+    ciphertext, shared_secret = pqcrypto.kem.ml_kem_768.encrypt(public_key)
+
     # Convert shared secret to an AES key
     aes_key = hashlib.sha256(shared_secret).digest()
-    
+
     # Use AES to encrypt the actual document data
     iv = os.urandom(16)  # AES block size
     padder = padding.PKCS7(128).padder()
     padded_data = padder.update(document_data) + padder.finalize()
-    
+
     cipher = Cipher(algorithms.AES(aes_key), modes.CBC(iv))
     encryptor = cipher.encryptor()
     encrypted_data = encryptor.update(padded_data) + encryptor.finalize()
-    
+
     # Format includes key ID, ciphertext (for shared secret recovery), IV, and encrypted data
     result = {
         'key_id': key['id'],
@@ -214,9 +219,10 @@ def encrypt_document(document_data, key=None):
         'iv': base64.b64encode(iv).decode('utf-8'),
         'encrypted_data': base64.b64encode(encrypted_data).decode('utf-8'),
         'metadata': {
-            'encryption_algorithm': 'KYBER768-AES256-CBC',
+            'encryption_algorithm': 'ML-KEM-768-AES256-CBC',
             'created_at': datetime.datetime.now().isoformat(),
-            'kms_key_id': key['kms_key_id']
+            'kms_key_id': key['kms_key_id'],
+            'document_id': document_id
         }
     }
     
@@ -270,7 +276,7 @@ def lambda_handler(event, context):
                         continue
 
                     # Encrypt the document
-                    encrypted_result = encrypt_document(document_data)
+                    encrypted_result = encrypt_document(document_data, document_id=object_key)
 
                     # Store encrypted document back to S3 in encrypted/ prefix
                     encrypted_key = object_key.replace('uploads/', 'encrypted/')
@@ -280,6 +286,9 @@ def lambda_handler(event, context):
                         Body=json.dumps(encrypted_result),
                         ContentType='application/json'
                     )
+
+                    # Log the encryption operation
+                    log_operation('encrypt', document_id=object_key, key_id=encrypted_result['key_id'])
 
                     print(f"Successfully encrypted and stored: s3://{bucket_name}/{encrypted_key}")
                     results.append({
