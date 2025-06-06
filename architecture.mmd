@@ -1,34 +1,46 @@
-graph TB
-    %% External Components
-    User["User"]
-    S3Up["S3 Upload"]
-    S3Enc["S3 Encrypt"]
+flowchart TB
+    %% Define node styles with wider width to prevent text cutoff
+    classDef userNode fill:#f9f,stroke:#333,stroke-width:2px
+    classDef storageNode fill:#bbf,stroke:#333,stroke-width:2px
+    classDef serviceNode fill:#bfb,stroke:#333,stroke-width:2px
+    classDef eventNode fill:#fbb,stroke:#333,stroke-width:2px
+    
+    %% External Components with descriptive labels
+    User["Client User\nSubmits & Retrieves Documents"] 
+    S3Up["S3 Bucket (uploads/)\nDocument Upload Storage"] 
+    S3Enc["S3 Bucket (encrypted/)\nEncrypted Document Storage"] 
 
-    %% Core Services
-    Store["Store"]
-    Retrieve["Retrieve"]
-    DB[("Database")]
-    KMS["KMS"]
+    %% Core Services with descriptive labels
+    Store["Store Lambda Function\nEncrypts Documents & Manages Keys"] 
+    Retrieve["Retrieve Lambda Function\nDecrypts & Returns Documents"] 
+    DB[("PostgreSQL Database\nKey & Metadata Storage")] 
+    KMS["AWS KMS Service\nKey Management Service"] 
 
     %% Event Flow
-    Event["Event"]
+    Event{"S3 Event Notification\nTriggered on File Upload"} 
     
-    %% User Interactions
-    User --> S3Up
-    User --> Retrieve
+    %% Flow Connections with labels
+    User -->|"1. Upload Document"| S3Up
+    User -->|"6. Request Decryption"| Retrieve
 
     %% Automatic Encryption Flow
-    S3Up --> Event
-    Event --> Store
-    Store --> DB
-    Store --> KMS
-    Store --> S3Enc
+    S3Up -->|"2. Triggers Event"| Event
+    Event -->|"3. Invokes Lambda"| Store
+    Store -->|"4a. Store Key Data"| DB
+    Store -->|"4b. Secure Private Key"| KMS
+    Store -->|"5. Store Encrypted Doc"| S3Enc
 
     %% Decryption Flow
-    Retrieve --> DB
-    Retrieve --> S3Enc
-    Retrieve --> User
+    Retrieve -->|"7a. Fetch Key Data"| DB
+    Retrieve -->|"7b. Retrieve Encrypted Doc"| S3Enc
+    Retrieve -->|"8. Return Decrypted Doc"| User
     
+    %% Apply styles
+    class User userNode
+    class S3Up,S3Enc storageNode
+    class Store,Retrieve,DB,KMS serviceNode
+    class Event eventNode
+
     %% Algorithm Details
     subgraph Algo ["Crypto"]
         Kyber["Kyber"]
