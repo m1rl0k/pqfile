@@ -1,80 +1,65 @@
 flowchart TB
-    %% Define node styles with wider width to prevent text cutoff
-    classDef userNode fill:#f9f,stroke:#333,stroke-width:2px
-    classDef storageNode fill:#bbf,stroke:#333,stroke-width:2px
-    classDef serviceNode fill:#bfb,stroke:#333,stroke-width:2px
-    classDef eventNode fill:#fbb,stroke:#333,stroke-width:2px
+    %% Define node styles
+    classDef userClass fill:#e1f5fe,stroke:#333,stroke-width:2px,font-size:12px,color:#000
+    classDef lambdaClass fill:#fff3e0,stroke:#333,stroke-width:2px,font-size:12px,color:#000
+    classDef storageClass fill:#f3e5f5,stroke:#333,stroke-width:2px,font-size:12px,color:#000
+    classDef eventClass fill:#e8f5e8,stroke:#333,stroke-width:2px,font-size:12px,color:#000
+    classDef algorithmClass fill:#fff8e1,stroke:#333,stroke-width:2px,font-size:12px,color:#000
+    classDef dbClass fill:#fce4ec,stroke:#333,stroke-width:2px,font-size:12px,color:#000
     
-    %% External Components with descriptive labels
-    User["Client User\nSubmits & Retrieves Documents"] 
-    S3Up["S3 Bucket (uploads/)\nDocument Upload Storage"] 
-    S3Enc["S3 Bucket (encrypted/)\nEncrypted Document Storage"] 
-
-    %% Core Services with descriptive labels
-    Store["Store Lambda Function\nEncrypts Documents & Manages Keys"] 
-    Retrieve["Retrieve Lambda Function\nDecrypts & Returns Documents"] 
-    DB[("PostgreSQL Database\nKey & Metadata Storage")] 
-    KMS["AWS KMS Service\nKey Management Service"] 
-
+    %% External Components
+    User["Client User<br/>Submits & Retrieves Documents"] 
+    S3Up["S3 Bucket (uploads/)<br/>Document Upload Storage"] 
+    S3Enc["S3 Bucket (encrypted/)<br/>Encrypted Document Storage"] 
+    
+    %% Core Services
+    Store["Store Lambda Function<br/>Encrypts Documents & Manages Keys"] 
+    Retrieve["Retrieve Lambda Function<br/>Decrypts & Returns Documents"] 
+    DB[("PostgreSQL Database<br/>Key & Metadata Storage")] 
+    KMS["AWS KMS Service<br/>Key Management Service"] 
+    
     %% Event Flow
-    Event{"S3 Event Notification\nTriggered on File Upload"} 
+    Event{"S3 Event Notification<br/>Triggered on File Upload"} 
     
-    %% Flow Connections with labels
+    %% Flow Connections
     User -->|"1. Upload Document"| S3Up
     User -->|"6. Request Decryption"| Retrieve
-
+    
     %% Automatic Encryption Flow
     S3Up -->|"2. Triggers Event"| Event
     Event -->|"3. Invokes Lambda"| Store
     Store -->|"4a. Store Key Data"| DB
     Store -->|"4b. Secure Private Key"| KMS
     Store -->|"5. Store Encrypted Doc"| S3Enc
-
+    
     %% Decryption Flow
     Retrieve -->|"7a. Fetch Key Data"| DB
     Retrieve -->|"7b. Retrieve Encrypted Doc"| S3Enc
     Retrieve -->|"8. Return Decrypted Doc"| User
     
-    %% Apply styles
-    class User userNode
-    class S3Up,S3Enc storageNode
-    class Store,Retrieve,DB,KMS serviceNode
-    class Event eventNode
-
     %% Algorithm Details
-    subgraph Algo ["Crypto"]
-        Kyber["Kyber"]
-        AES["AES"]
+    subgraph Algo ["Crypto Algorithms"]
+        Kyber["Kyber<br/>Post-Quantum Cryptography"]
+        AES["AES<br/>Symmetric Encryption"]
         Kyber --> AES
     end
-
     Store -.-> Algo
     Retrieve -.-> Algo
-
+    
     %% Database Schema
-    subgraph DBSchema ["Tables"]
-        Keys["Keys"]
-        Logs["Logs"]
-        Rots["Rotations"]
-
+    subgraph DBSchema ["Database Tables"]
+        Keys["Keys Table"]
+        Logs["Logs Table"]
+        Rots["Rotations Table"]
         Keys -.-> Logs
         Keys -.-> Rots
     end
-
     DB -.-> DBSchema
     
-    %% Styling
-    classDef userClass fill:#e1f5fe,stroke:none,font-size:12px,color:#000,min-width:80px
-    classDef lambdaClass fill:#fff3e0,stroke:none,font-size:12px,color:#000,min-width:80px
-    classDef storageClass fill:#f3e5f5,stroke:none,font-size:12px,color:#000,min-width:80px
-    classDef eventClass fill:#e8f5e8,stroke:none,font-size:12px,color:#000,min-width:80px
-    classDef algorithmClass fill:#fff8e1,stroke:none,font-size:12px,color:#000,min-width:80px
-    classDef dbClass fill:#fce4ec,stroke:none,font-size:12px,color:#000,min-width:80px
-
+    %% Apply styles to nodes
     class User userClass
     class Store,Retrieve lambdaClass
-    class S3Up,S3Enc storageClass
-    class DB,KMS storageClass
+    class S3Up,S3Enc,DB,KMS storageClass
     class Event eventClass
     class Kyber,AES algorithmClass
     class Keys,Logs,Rots dbClass
