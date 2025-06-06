@@ -1,17 +1,18 @@
+%%{init: {"flowchart": {"htmlLabels": false}} }%%
 graph TB
     %% External Components
-    User[👤 User]
-    S3Upload[📁 S3 uploads/]
-    S3Encrypted[🔒 S3 encrypted/]
+    User["👤<br/>User"]
+    S3Upload["📁<br/>S3 uploads"]
+    S3Encrypted["🔒<br/>S3 encrypted"]
 
     %% Core Services
-    StoreL[⚡ Store Lambda]
-    RetrieveL[⚡ Retrieve Lambda]
-    DB[(🗄️ PostgreSQL)]
-    KMS[🔑 AWS KMS]
+    StoreL["⚡<br/>Store Lambda"]
+    RetrieveL["⚡<br/>Retrieve Lambda"]
+    DB[("🗄️<br/>PostgreSQL")]
+    KMS["🔑<br/>AWS KMS"]
 
     %% Event Flow
-    S3Event[📨 S3 Event]
+    S3Event["📨<br/>S3 Event"]
     
     %% User Interactions
     User -->|1. Upload Document| S3Upload
@@ -34,49 +35,50 @@ graph TB
     RetrieveL -->|Log Access| DB
     
     %% Algorithm Details
-    subgraph "🔐 Encryption"
-        direction TB
-        Kyber[Kyber768 KEM]
-        AES[AES-256-CBC]
+    subgraph Algo ["🔐 Encryption"]
+        direction LR
+        Kyber["Kyber768<br/>KEM"]
+        AES["AES-256<br/>CBC"]
         Kyber --> AES
     end
-    
-    StoreL -.->|Uses| Kyber
-    RetrieveL -.->|Uses| AES
-    
+
+    StoreL -.-> Algo
+    RetrieveL -.-> Algo
+
     %% Database Schema
-    subgraph "🗄️ Database"
-        direction TB
-        EncKeys[encryption_keys]
-        AccessLogs[access_logs]
-        KeyRotations[key_rotations]
+    subgraph DBSchema ["🗄️ Database Tables"]
+        direction LR
+        EncKeys["encryption_keys"]
+        AccessLogs["access_logs"]
+        KeyRotations["key_rotations"]
 
         EncKeys -.-> AccessLogs
         EncKeys -.-> KeyRotations
     end
-    
-    DB -.-> EncKeys
-    
+
+    DB -.-> DBSchema
+
     %% Security Features
-    subgraph "🛡️ Security Features"
-        direction TB
-        PQC[Post-Quantum<br/>Cryptography]
-        KeyRot[Automatic<br/>Key Rotation]
-        Audit[Comprehensive<br/>Audit Logging]
-        
+    subgraph Security ["🛡️ Security Features"]
+        direction LR
+        PQC["Post-Quantum<br/>Crypto"]
+        KeyRot["Key<br/>Rotation"]
+        Audit["Audit<br/>Logging"]
+
         PQC --> KeyRot
         KeyRot --> Audit
     end
     
     %% Styling
-    classDef userClass fill:#e1f5fe,stroke:#01579b,stroke-width:2px
-    classDef lambdaClass fill:#fff3e0,stroke:#e65100,stroke-width:2px
-    classDef storageClass fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
-    classDef securityClass fill:#e8f5e8,stroke:#1b5e20,stroke-width:2px
-    classDef algorithmClass fill:#fff8e1,stroke:#f57f17,stroke-width:2px
-    
+    classDef userClass fill:#e1f5fe,stroke:#01579b,stroke-width:2px,font-size:12px
+    classDef lambdaClass fill:#fff3e0,stroke:#e65100,stroke-width:2px,font-size:12px
+    classDef storageClass fill:#f3e5f5,stroke:#4a148c,stroke-width:2px,font-size:12px
+    classDef securityClass fill:#e8f5e8,stroke:#1b5e20,stroke-width:2px,font-size:12px
+    classDef algorithmClass fill:#fff8e1,stroke:#f57f17,stroke-width:2px,font-size:12px
+    classDef subgraphClass fill:#f9f9f9,stroke:#666,stroke-width:1px
+
     class User userClass
     class StoreL,RetrieveL lambdaClass
     class S3Upload,S3Encrypted,DB storageClass
     class KMS,PQC,KeyRot,Audit securityClass
-    class Kyber,AES algorithmClass
+    class Kyber,AES,EncKeys,AccessLogs,KeyRotations algorithmClass
