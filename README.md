@@ -15,46 +15,45 @@ A secure document encryption system using post-quantum cryptography concepts, bu
 ## Architecture
 
 ```mermaid
-%%{init: {"flowchart": {"htmlLabels": true, "curve": "linear"}, "theme": "base"}}%%
 graph TB
-    User["User<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"]
-    S3Upload["S3 Upload Bucket<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"]
-    S3Encrypted["S3 Encrypted Bucket<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"]
-    StoreLambda["Store Lambda Function<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"]
-    RetrieveLambda["Retrieve Lambda Function<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"]
-    Database[("PostgreSQL Database<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;")]
-    KMSService["AWS KMS Service<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"]
-    S3Event["S3 Event Notification<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"]
+    User[User]
+    Upload[Upload]
+    Encrypted[Encrypted]
+    Store[Store]
+    Retrieve[Retrieve]
+    DB[(DB)]
+    KMS[KMS]
+    Event[Event]
 
-    User --> S3Upload
-    User --> RetrieveLambda
-    S3Upload --> S3Event
-    S3Event --> StoreLambda
-    StoreLambda --> Database
-    StoreLambda --> KMSService
-    StoreLambda --> S3Encrypted
-    RetrieveLambda --> Database
-    RetrieveLambda --> S3Encrypted
-    RetrieveLambda --> User
+    User --> Upload
+    User --> Retrieve
+    Upload --> Event
+    Event --> Store
+    Store --> DB
+    Store --> KMS
+    Store --> Encrypted
+    Retrieve --> DB
+    Retrieve --> Encrypted
+    Retrieve --> User
 
-    subgraph CryptoAlgorithm ["Encryption Algorithm"]
-        Kyber768["Kyber768 KEM<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"]
-        AES256["AES-256-CBC<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"]
-        Kyber768 --> AES256
+    subgraph Crypto [Crypto]
+        Kyber[Kyber]
+        AES[AES]
+        Kyber --> AES
     end
 
-    StoreLambda -.-> CryptoAlgorithm
-    RetrieveLambda -.-> CryptoAlgorithm
+    Store -.-> Crypto
+    Retrieve -.-> Crypto
 
-    subgraph DatabaseTables ["Database Tables"]
-        EncryptionKeys["encryption_keys<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"]
-        AccessLogs["access_logs<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"]
-        KeyRotations["key_rotations<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"]
-        EncryptionKeys -.-> AccessLogs
-        EncryptionKeys -.-> KeyRotations
+    subgraph Tables [Tables]
+        Keys[Keys]
+        Logs[Logs]
+        Rots[Rots]
+        Keys -.-> Logs
+        Keys -.-> Rots
     end
 
-    Database -.-> DatabaseTables
+    DB -.-> Tables
 ```
 
 ## Quick Start
