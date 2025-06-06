@@ -1,65 +1,62 @@
 graph TB
     %% Define node styles
     classDef userClass fill:#e1f5fe,stroke:#333,stroke-width:2px
-    classDef lambdaClass fill:#fff3e0,stroke:#333,stroke-width:2px
+    classDef apiClass fill:#fff3e0,stroke:#333,stroke-width:2px
+    classDef lambdaClass fill:#ffecb3,stroke:#333,stroke-width:2px
     classDef storageClass fill:#f3e5f5,stroke:#333,stroke-width:2px
-    classDef eventClass fill:#e8f5e8,stroke:#333,stroke-width:2px
-    classDef algorithmClass fill:#fff8e1,stroke:#333,stroke-width:2px
     classDef dbClass fill:#fce4ec,stroke:#333,stroke-width:2px
-    
+    classDef algorithmClass fill:#fff8e1,stroke:#333,stroke-width:2px
+    classDef vpcClass fill:#e8f5e8,stroke:#333,stroke-width:2px
+
     %% External Components
-    User[Client User - Submits and Retrieves Documents] 
-    S3Up[S3 Bucket uploads - Document Upload Storage] 
-    S3Enc[S3 Bucket encrypted - Encrypted Document Storage] 
-    
-    %% Core Services
-    Store[Store Lambda Function - Encrypts Documents and Manages Keys] 
-    Retrieve[Retrieve Lambda Function - Decrypts and Returns Documents] 
-    DB[(PostgreSQL Database - Key and Metadata Storage)] 
-    KMS[AWS KMS Service - Key Management Service] 
-    
-    %% Event Flow
-    Event{S3 Event Notification - Triggered on File Upload} 
-    
-    %% Flow Connections
-    User -->|Upload Document| S3Up
-    User -->|Request Decryption| Retrieve
-    
-    %% Automatic Encryption Flow
-    S3Up -->|Triggers Event| Event
-    Event -->|Invokes Lambda| Store
-    Store -->|Store Key Data| DB
-    Store -->|Secure Private Key| KMS
-    Store -->|Store Encrypted Doc| S3Enc
-    
-    %% Decryption Flow
-    Retrieve -->|Fetch Key Data| DB
-    Retrieve -->|Retrieve Encrypted Doc| S3Enc
-    Retrieve -->|Return Decrypted Doc| User
-    
-    %% Algorithm Details
-    subgraph Algo [Crypto Algorithms]
-        Kyber[Kyber - Post-Quantum Cryptography]
-        AES[AES - Symmetric Encryption]
+    User[Client Applications]
+
+    %% API Layer
+    API[API Gateway REST API]
+
+    %% Core Processing
+    Lambda[Unified Lambda Function]
+
+    %% Storage Layer
+    S3[S3 Encrypted Documents]
+    KMS[AWS KMS Backup Keys]
+
+    %% Isolated Database (The "Oh Shit Button")
+    subgraph VPC [Isolated VPC]
+        DB[(PostgreSQL Database)]
+        subgraph DBTables [Critical Backup Store]
+            Keys[Private Keys Backup]
+            Logs[Audit Trail]
+            Metadata[Document Metadata]
+        end
+    end
+
+    %% Crypto Implementation
+    subgraph Crypto [Post-Quantum Cryptography]
+        Kyber[ML-KEM-768 Key Encapsulation]
+        AES[AES-256-CBC Encryption]
         Kyber --> AES
     end
-    Store -.-> Algo
-    Retrieve -.-> Algo
-    
-    %% Database Schema
-    subgraph DBSchema [Database Tables]
-        Keys[Keys Table]
-        Logs[Logs Table]
-        Rots[Rotations Table]
-        Keys -.-> Logs
-        Keys -.-> Rots
-    end
-    DB -.-> DBSchema
-    
-    %% Apply styles to nodes
+
+    %% Main Flow
+    User -->|HTTPS REST API| API
+    API -->|Invoke| Lambda
+    Lambda -->|Encrypt/Decrypt| S3
+    Lambda -->|Backup Keys| KMS
+    Lambda -->|Critical Backup| DB
+    Lambda -.->|Uses| Crypto
+
+    %% Database Relations
+    DB -.-> DBTables
+
+    %% Disaster Recovery Flow
+    Lambda -.->|"Oh Shit Button"<br/>Key Recovery| Keys
+
+    %% Apply styles
     class User userClass
-    class Store,Retrieve lambdaClass
-    class S3Up,S3Enc,DB,KMS storageClass
-    class Event eventClass
+    class API apiClass
+    class Lambda lambdaClass
+    class S3,KMS storageClass
+    class DB,Keys,Logs,Metadata dbClass
     class Kyber,AES algorithmClass
-    class Keys,Logs,Rots dbClass
+    class VPC,DBTables vpcClass

@@ -431,30 +431,35 @@ def create_test_document():
         print(f"Error during test: {e}")
 
 if __name__ == "__main__":
+    print("🔐 PQFile Test Starting...", flush=True)
+
     # Start Docker containers if they're not already running
-    print("Checking if Docker containers are running...")
+    print("Checking if Docker containers are running...", flush=True)
     result = subprocess.run(
-        ["docker-compose", "ps", "-q"], 
+        ["docker-compose", "ps", "-q"],
         capture_output=True,
         text=True
     )
-    
+
+    print(f"Docker ps result: {len(result.stdout.strip().splitlines())} containers", flush=True)
+
     if not result.stdout.strip():
-        print("Starting Docker containers...")
+        print("Starting Docker containers...", flush=True)
         subprocess.run(["docker-compose", "up", "-d"])
-        print("Docker containers started. Waiting for services to be ready...")
+        print("Docker containers started. Waiting for services to be ready...", flush=True)
     else:
-        print("Docker containers are already running")
+        print("Docker containers are already running", flush=True)
     
     # Wait for services to be ready
+    print("Waiting for services to be ready...", flush=True)
     wait_for_services()
-    
+
     # Set up AWS resources
-    print("\nSetting up AWS resources...")
+    print("\nSetting up AWS resources...", flush=True)
     setup_aws_resources()
-    
+
     # Create and test with a document
-    print("\nCreating test document...")
+    print("\nCreating test document...", flush=True)
     create_test_document()
-    
-    print("\nTest completed.")
+
+    print("\nTest completed.", flush=True)

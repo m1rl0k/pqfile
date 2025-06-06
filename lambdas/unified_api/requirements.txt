@@ -1,0 +1,4 @@
+boto3==1.38.31
+pg8000==1.30.5
+cryptography==45.0.2
+pqcrypto==0.3.1

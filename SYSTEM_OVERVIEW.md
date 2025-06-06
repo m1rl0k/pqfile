@@ -1,18 +1,18 @@
-# PQFile System - Comprehensive Technical Overview
+# PQFile System - Commercial Architecture Overview
 
 ## Executive Summary
 
-PQFile is a post-quantum cryptography document encryption system built on AWS Lambda, PostgreSQL, and Docker. The system automatically encrypts documents uploaded to S3 using a hybrid cryptographic approach that combines Kyber768 Key Encapsulation Mechanism (KEM) with AES-256-CBC symmetric encryption. This architecture provides quantum-resistant security while maintaining high performance and scalability.
+PQFile is a post-quantum cryptography document encryption service built on AWS serverless architecture with enterprise-grade disaster recovery. The system provides a simple REST API for document encryption/decryption while maintaining an isolated database as a critical backup key store - ensuring data recovery even if AWS KMS keys are lost during rotation periods.
 
 ## System Architecture Overview
 
-The PQFile system operates as an event-driven serverless architecture with the following core components:
+The PQFile system operates as a REST API-driven serverless architecture with the following core components:
 
-1. **S3 Storage Layer**: Two buckets handle document lifecycle - uploads/ for incoming documents and encrypted/ for processed documents
-2. **Lambda Processing Layer**: Two functions handle encryption (store_lambda) and decryption (retrieve_lambda)
-3. **Database Layer**: PostgreSQL manages encryption keys, metadata, and audit trails
-4. **Security Layer**: AWS KMS provides additional key protection and management
-5. **Development Environment**: Docker containers provide LocalStack and PostgreSQL for local development
+1. **API Gateway**: RESTful interface for document operations
+2. **Single Lambda Function**: Unified handler for encrypt/decrypt operations
+3. **Hybrid Key Management**: AWS KMS for primary operations + isolated PostgreSQL for disaster recovery
+4. **S3 Storage**: Encrypted document storage with lifecycle management
+5. **Isolated Database**: Critical backup key store in separate VPC for "oh shit button" scenarios
 
 ## Document Processing Workflow
 

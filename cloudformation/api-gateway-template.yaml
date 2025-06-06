@@ -1,0 +1,220 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'PQFile API Gateway and Lambda deployment'
+
+Parameters:
+  Environment:
+    Type: String
+    Default: 'dev'
+    AllowedValues: ['dev', 'staging', 'prod']
+  
+  DatabaseHost:
+    Type: String
+    Description: 'PostgreSQL database host (isolated VPC)'
+  
+  DatabasePassword:
+    Type: String
+    NoEcho: true
+    Description: 'PostgreSQL database password'
+
+Resources:
+  # Lambda Execution Role
+  PQFileLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole
+      Policies:
+        - PolicyName: PQFilePermissions
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - kms:CreateKey
+                  - kms:Encrypt
+                  - kms:Decrypt
+                  - kms:TagResource
+                  - kms:DescribeKey
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:PutObject
+                  - s3:DeleteObject
+                Resource: 
+                  - !Sub '${PQFileS3Bucket}/*'
+              - Effect: Allow
+                Action:
+                  - s3:ListBucket
+                Resource: !Ref PQFileS3Bucket
+
+  # S3 Bucket for encrypted documents
+  PQFileS3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub 'pqfile-documents-${Environment}-${AWS::AccountId}'
+      VersioningConfiguration:
+        Status: Enabled
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+
+  # Lambda Function
+  PQFileLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub 'pqfile-api-${Environment}'
+      Runtime: python3.9
+      Handler: app.lambda_handler
+      Code:
+        ZipFile: |
+          # Placeholder - replace with actual deployment package
+          def lambda_handler(event, context):
+              return {'statusCode': 200, 'body': 'Placeholder'}
+      Role: !GetAtt PQFileLambdaRole.Arn
+      Timeout: 30
+      MemorySize: 512
+      Environment:
+        Variables:
+          DB_HOST: !Ref DatabaseHost
+          DB_NAME: 'pqfile_db'
+          DB_USER: 'postgres'
+          DB_PASSWORD: !Ref DatabasePassword
+          S3_BUCKET: !Ref PQFileS3Bucket
+          ENVIRONMENT: !Ref Environment
+
+  # API Gateway
+  PQFileApi:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Name: !Sub 'pqfile-api-${Environment}'
+      Description: 'PQFile Document Encryption API'
+      EndpointConfiguration:
+        Types:
+          - REGIONAL
+
+  # API Gateway Resources
+  EncryptResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !Ref PQFileApi
+      ParentId: !GetAtt PQFileApi.RootResourceId
+      PathPart: 'encrypt'
+
+  DecryptResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !Ref PQFileApi
+      ParentId: !GetAtt PQFileApi.RootResourceId
+      PathPart: 'decrypt'
+
+  DecryptIdResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !Ref PQFileApi
+      ParentId: !Ref DecryptResource
+      PathPart: '{document_id}'
+
+  AdminResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !Ref PQFileApi
+      ParentId: !GetAtt PQFileApi.RootResourceId
+      PathPart: 'admin'
+
+  RotateKeysResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !Ref PQFileApi
+      ParentId: !Ref AdminResource
+      PathPart: 'rotate-keys'
+
+  # API Gateway Methods
+  EncryptMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref PQFileApi
+      ResourceId: !Ref EncryptResource
+      HttpMethod: POST
+      AuthorizationType: NONE
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${PQFileLambda.Arn}/invocations'
+
+  DecryptMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref PQFileApi
+      ResourceId: !Ref DecryptIdResource
+      HttpMethod: GET
+      AuthorizationType: NONE
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${PQFileLambda.Arn}/invocations'
+
+  RotateKeysMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref PQFileApi
+      ResourceId: !Ref RotateKeysResource
+      HttpMethod: POST
+      AuthorizationType: NONE
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${PQFileLambda.Arn}/invocations'
+
+  # Lambda Permissions
+  EncryptLambdaPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref PQFileLambda
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${PQFileApi}/*/*'
+
+  # API Gateway Deployment
+  ApiDeployment:
+    Type: AWS::ApiGateway::Deployment
+    DependsOn:
+      - EncryptMethod
+      - DecryptMethod
+      - RotateKeysMethod
+    Properties:
+      RestApiId: !Ref PQFileApi
+      StageName: !Ref Environment
+
+Outputs:
+  ApiEndpoint:
+    Description: 'API Gateway endpoint URL'
+    Value: !Sub 'https://${PQFileApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}'
+    Export:
+      Name: !Sub '${AWS::StackName}-ApiEndpoint'
+
+  S3Bucket:
+    Description: 'S3 bucket for encrypted documents'
+    Value: !Ref PQFileS3Bucket
+    Export:
+      Name: !Sub '${AWS::StackName}-S3Bucket'
+
+  LambdaFunction:
+    Description: 'Lambda function ARN'
+    Value: !GetAtt PQFileLambda.Arn
+    Export:
+      Name: !Sub '${AWS::StackName}-LambdaArn'
