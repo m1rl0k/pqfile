@@ -15,45 +15,46 @@ A secure document encryption system using post-quantum cryptography concepts, bu
 ## Architecture
 
 ```mermaid
+%%{init: {"flowchart": {"useMaxWidth": true, "htmlLabels": true}}}%%
 graph TB
-    A[User]
-    B[S3Up]
-    C[S3Enc]
-    D[Store]
-    E[Retrieve]
-    F[(DB)]
-    G[KMS]
-    H[Event]
+    User["User"]
+    S3Upload["S3 Upload Bucket"]
+    S3Encrypted["S3 Encrypted Bucket"]
+    StoreLambda["Store Lambda Function"]
+    RetrieveLambda["Retrieve Lambda Function"]
+    Database[("PostgreSQL Database")]
+    KMSService["AWS KMS Service"]
+    S3Event["S3 Event Notification"]
 
-    A --> B
-    A --> E
-    B --> H
-    H --> D
-    D --> F
-    D --> G
-    D --> C
-    E --> F
-    E --> C
-    E --> A
+    User --> S3Upload
+    User --> RetrieveLambda
+    S3Upload --> S3Event
+    S3Event --> StoreLambda
+    StoreLambda --> Database
+    StoreLambda --> KMSService
+    StoreLambda --> S3Encrypted
+    RetrieveLambda --> Database
+    RetrieveLambda --> S3Encrypted
+    RetrieveLambda --> User
 
-    subgraph I [Crypto]
-        J[Kyber]
-        K[AES]
-        J --> K
+    subgraph CryptoAlgorithm ["Encryption Algorithm"]
+        Kyber768["Kyber768 KEM"]
+        AES256["AES-256-CBC"]
+        Kyber768 --> AES256
     end
 
-    D -.-> I
-    E -.-> I
+    StoreLambda -.-> CryptoAlgorithm
+    RetrieveLambda -.-> CryptoAlgorithm
 
-    subgraph L [Tables]
-        M[Keys]
-        N[Logs]
-        O[Rots]
-        M -.-> N
-        M -.-> O
+    subgraph DatabaseTables ["Database Tables"]
+        EncryptionKeys["encryption_keys"]
+        AccessLogs["access_logs"]
+        KeyRotations["key_rotations"]
+        EncryptionKeys -.-> AccessLogs
+        EncryptionKeys -.-> KeyRotations
     end
 
-    F -.-> L
+    Database -.-> DatabaseTables
 ```
 
 ## Quick Start
