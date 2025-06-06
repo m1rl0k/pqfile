@@ -15,41 +15,57 @@ A secure document encryption system using post-quantum cryptography concepts, bu
 ## Architecture
 
 ```mermaid
-flowchart TB
-subgraph Client["Client"]
-User[User]
-end
-subgraph Storage["S3 Storage"]
-Upload[Upload Bucket]
-Encrypted[Encrypted Bucket]
-end
-subgraph Lambda["Lambda Functions"]
-direction LR
-Store[Store Lambda]
-Retrieve[Retrieve Lambda]
-end
-subgraph Database["Database"]
-DB[(PostgreSQL)]
-KMS[AWS KMS]
-end
-subgraph Crypto["Encryption"]
-direction LR
-Kyber[Kyber768]
-AES[AES-256]
-end
-User-->Upload
-User-->Retrieve
-Upload-->Store
-Store-->DB
-Store-->KMS
-Store-->Encrypted
-Retrieve-->DB
-Retrieve-->Encrypted
-Retrieve-->User
-Store-.->Crypto
-Retrieve-.->Crypto
-Kyber-->AES
-classDef default fill:#fff,stroke:#666,stroke-width:1px
+flowchart TD
+    subgraph Client["Client"]
+        User[User]
+    end
+
+    subgraph S3["S3 Buckets"]
+        Upload[Upload Bucket (uploads/)]
+        Encrypted[Encrypted Bucket (encrypted/)]
+    end
+
+    subgraph Lambda["Lambda Functions"]
+        Store[Store Lambda]
+        Retrieve[Retrieve Lambda]
+    end
+
+    subgraph DB["PostgreSQL Database"]
+        DB[(Key Management & Logs)]
+    end
+
+    subgraph KMS["Key Management"]
+        KMS[AWS KMS (simulated)]
+    end
+
+    subgraph Crypto["Hybrid Encryption"]
+        Kyber[Kyber768 KEM]
+        AES[AES-256-CBC]
+    end
+
+    %% Client interactions
+    User --> Upload
+    User --> Retrieve
+
+    %% Upload path
+    Upload -->|S3 Event| Store
+    Store --> DB
+    Store --> KMS
+    Store -.-> Kyber
+    Kyber --> AES
+    Store -.-> AES
+    Store --> Encrypted
+
+    %% Retrieval path
+    Retrieve --> Encrypted
+    Retrieve --> DB
+    Retrieve -.-> AES
+    AES --> Kyber
+    Retrieve -.-> Kyber
+    Retrieve --> User
+
+    classDef default fill:#fff,stroke:#333,stroke-width:1.5px
+
 ```
 
 ## Quick Start
@@ -238,79 +254,23 @@ The system uses a **hybrid post-quantum cryptographic approach**:
 
 1. **Post-Quantum Cryptography**: Kyber768 KEM provides quantum-resistant key exchange
 2. **Hybrid Approach**: Combines PQC key exchange with proven AES symmetric encryption
-3. **Key Management**: Secure key generation and storage in PostgreSQL
-4. **Key Rotation**: Database tracks key lifecycle and supports rotation
-5. **Audit Logging**: All document access and operations are logged
-6. **Secure Storage**: Keys stored separately from encrypted data
-7. **Event-Driven Security**: Automatic encryption on upload prevents data exposure
-
-## Development
-
-### Project Structure
-
-```
-pqfile/
-├── lambdas/
-│   ├── store_lambda/
-│   │   ├── app.py              # Encryption logic with S3 event handling
-│   │   └── requirements.txt    # Optimized dependencies
-│   └── retrieve_lambda/
-│       ├── app.py              # Decryption logic with error handling
-│       └── requirements.txt    # Optimized dependencies
-├── docker-compose.yml          # Container orchestration (ports 4566, 5432)
-├── Dockerfile                  # PostgreSQL with initialization
-├── setup.sh                    # Automated setup with dependency building
-├── test_local.py              # Comprehensive end-to-end testing
-└── README.md
-```
-
-### Testing
-
-#### Automated Testing
-```bash
-./setup.sh
-```
-
-#### Manual Testing
-```bash
-# Start containers
-docker-compose up -d
-
-# Wait for services
-sleep 15
-
-# Run Python tests
-python3 test_local.py
-```
-
-#### Test Components
-- Database connectivity and schema creation
-- Lambda function deployment and readiness
-- S3 event notification setup
-- End-to-end encryption/decryption workflow
-- Content verification and audit logging
-
-## Troubleshooting
-
-### Common Issues
-
-1. **Port conflicts**:
-   - LocalStack: port 4566
-   - PostgreSQL: port 5432
-   - Solution: Stop conflicting services or change ports in docker-compose.yml
-
-2. **Docker permissions**:
-   - Ensure Docker daemon is running
-   - Check user permissions for Docker socket
-
-3. **Lambda dependency issues**:
-   - Dependencies are built using Docker with Linux ARM64 architecture
+3. **Key Management**: Secure key generation```mermaid
+flowchart TD
+    User -->|Upload|> S3
+    S3 -->|Event|> Store
+    Store -->|Encrypt|> DB
+    Store -->|Encrypt|> KMS
+    Store -->|Store|> S3Enc
+    Retrieve -->|Decrypt|> DB
+    Retrieve -->|Decrypt|> S3Enc
+    Retrieve -->|Return|> User
+``` Dependencies are built using Docker with Linux ARM64 architecture
    - If issues persist, rebuild packages: `rm -rf /tmp/packages && ./setup.sh`
 
 4. **LocalStack connectivity**:
    - Verify containers are running: `docker ps`
    - Check LocalStack health: `curl http://localhost:4566/_localstack/health`
-
+{{ ... }}
 ### Debugging
 
 #### View Logs
