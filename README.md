@@ -15,7 +15,7 @@ A secure document encryption system using post-quantum cryptography concepts, bu
 ## Architecture
 
 ```mermaid
-%%{init: {"flowchart": {"useMaxWidth": true, "htmlLabels": true}}}%%
+%%{init: {"flowchart": {"useMaxWidth": false, "htmlLabels": false, "curve": "basis"}, "theme": "base", "themeVariables": {"primaryColor": "#ffffff", "primaryTextColor": "#000000", "primaryBorderColor": "#666666", "lineColor": "#666666"}}}%%
 graph TB
     User["User"]
     S3Upload["S3 Upload Bucket"]
@@ -55,6 +55,8 @@ graph TB
     end
 
     Database -.-> DatabaseTables
+
+    classDef default fill:#ffffff,stroke:#666666,stroke-width:1px,color:#000000
 ```
 
 ## Quick Start
