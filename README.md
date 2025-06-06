@@ -21,25 +21,25 @@ flowchart TD
     end
 
     subgraph S3Block["S3 Buckets"]
-        Upload[Upload Bucket - uploads]
-        Encrypted[Encrypted Bucket - encrypted]
+        Upload[Upload\nS3 Bucket]
+        Encrypted[Encrypted\nS3 Bucket]
     end
 
     subgraph LambdaBlock["Lambda Functions"]
-        Store[Store Lambda]
-        Retrieve[Retrieve Lambda]
+        Store[Store\nLambda]
+        Retrieve[Retrieve\nLambda]
     end
 
     subgraph DatabaseBlock["PostgreSQL Database"]
-        DB[Key Management and Logs]
+        DB[Key Management\nand Logs]
     end
 
     subgraph KeyMgmt["Key Management"]
-        KMSNode[AWS KMS simulated]
+        KMSNode[AWS KMS\n(simulated)]
     end
 
     subgraph CryptoBlock["Hybrid Encryption"]
-        Kyber[Kyber768 KEM]
+        Kyber[Kyber768\nKEM]
         AES[AES-256-CBC]
     end
 
@@ -63,6 +63,7 @@ flowchart TD
     AES --> Kyber
     Retrieve -.-> Kyber
     Retrieve --> User
+
 
 ```
 
