@@ -1,0 +1,6 @@
+boto3==1.26.137
+psycopg==3.2.9
+psycopg-pool==3.2.9
+cryptography==39.0.2
+# Note: In a real implementation, you would include a proper PQ crypto library
+# For example: pqcrypto>=0.1.3

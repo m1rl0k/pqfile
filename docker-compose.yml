@@ -1,0 +1,52 @@
+version: '3.8'
+
+services:
+  postgres:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: pqfile_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: pqfile_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - pqfile_network
+
+  localstack:
+    image: localstack/localstack:latest
+    container_name: pqfile_localstack
+    ports:
+      - "4566:4566"
+    environment:
+      - SERVICES=s3,lambda,kms
+      - DEBUG=1
+      - DATA_DIR=/var/lib/localstack
+      - LAMBDA_EXECUTOR=local
+      - LAMBDA_REMOTE_DOCKER=0
+      - DOCKER_HOST=unix:///var/run/docker.sock
+      - AWS_DEFAULT_REGION=us-east-1
+      - HOSTNAME_EXTERNAL=localstack
+      - AWS_ACCESS_KEY_ID=test
+      - AWS_SECRET_ACCESS_KEY=test
+      - LAMBDA_RUNTIME_PYTHON=python3.9
+      - DEFAULT_LAMBDA_PYTHON_VERSION=python3.9
+    volumes:
+      - localstack_data:/var/lib/localstack
+      - ./lambdas:/opt/code/lambdas
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - pqfile_network
+
+networks:
+  pqfile_network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  localstack_data:
