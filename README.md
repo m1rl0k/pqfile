@@ -67,22 +67,6 @@ graph TB
     end
 
     DB -.-> DBSchema
-
-    %% Styling
-    classDef userClass fill:#e1f5fe,stroke:none,font-size:12px,color:#000
-    classDef lambdaClass fill:#fff3e0,stroke:none,font-size:12px,color:#000
-    classDef storageClass fill:#f3e5f5,stroke:none,font-size:12px,color:#000
-    classDef eventClass fill:#e8f5e8,stroke:none,font-size:12px,color:#000
-    classDef algorithmClass fill:#fff8e1,stroke:none,font-size:12px,color:#000
-    classDef dbClass fill:#fce4ec,stroke:none,font-size:12px,color:#000
-
-    class User userClass
-    class Store,Retrieve lambdaClass
-    class S3Up,S3Enc storageClass
-    class DB,KMS storageClass
-    class Event eventClass
-    class Kyber,AES algorithmClass
-    class Keys,Logs,Rots dbClass
 ```
 
 ## Quick Start
