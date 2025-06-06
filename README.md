@@ -16,53 +16,32 @@ A secure document encryption system using post-quantum cryptography concepts, bu
 
 ```mermaid
 flowchart TD
-    subgraph ClientBlock["Client"]
-        User[User]
-    end
+    Triggers[S3Event]
+    S3Event -->|3. Invokes| StoreL
+    StoreL -->|4a. Get Active Key| DB
+    StoreL -->|4b. KMS Operations| KMS
+    StoreL -->|5. Store Encrypted| S3Encrypted
 
-    subgraph S3Block["S3 Buckets"]
-        Upload[Upload - S3]
-        Encrypted[Encrypted - S3]
-    end
+    %% Decryption Flow
+    RetrieveL -->|7a. Get Private Key| DB
+    RetrieveL -->|7b. Download Package| S3Encrypted
+    RetrieveL -->|8. Return Decrypted| User
 
-    subgraph LambdaBlock["Lambda Functions"]
-        Store[Store Lambda]
-        Retrieve[Retrieve Lambda]
-    end
+    %% Database Operations
+    StoreL -->|Log Operations| DB
+    RetrieveL -->|Log Access| DB
 
-    subgraph DatabaseBlock["PostgreSQL Database"]
-        DB[Key Management and Logs]
-    end
+    %% Styling
+    classDef userClass fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+    classDef lambdaClass fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    classDef storageClass fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    classDef securityClass fill:#e8f5e8,stroke:#1b5e20,stroke-width:2px
 
-    subgraph KeyMgmt["Key Management"]
-        KMSNode[AWS KMS simulated]
-    end
+    class User userClass
+    class StoreL,RetrieveL lambdaClass
+    class S3Upload,S3Encrypted,DB storageClass
+    class KMS securityClass
 
-    subgraph CryptoBlock["Hybrid Encryption"]
-        Kyber[Kyber768 KEM]
-        AES[AES-256-CBC]
-    end
-
-    %% Client interactions
-    User --> Upload
-    User --> Retrieve
-
-    %% Upload path
-    Upload -->|S3 Event| Store
-    Store --> DB
-    Store --> KMSNode
-    Store -.-> Kyber
-    Kyber --> AES
-    Store -.-> AES
-    Store --> Encrypted
-
-    %% Retrieval path
-    Retrieve --> Encrypted
-    Retrieve --> DB
-    Retrieve -.-> AES
-    AES --> Kyber
-    Retrieve -.-> Kyber
-    Retrieve --> User
 
 ```
 
