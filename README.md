@@ -1,6 +1,6 @@
 # PQFile - Post-Quantum Document Encryption System
 
-A secure document encryption system using post-quantum cryptography concepts, built with AWS Lambda, PostgreSQL, and Docker. **Fully functional and tested!** ✅
+A secure document encryption system using post-quantum cryptography concepts, built with AWS Lambda, PostgreSQL, and Docker. 
 
 ## Features
 
@@ -261,27 +261,3 @@ For production deployment, modify the following:
    - Implement proper access controls
 6. **Scaling**: Configure Lambda concurrency and S3 event batching
 
-### Production Environment Variables
-```bash
-# Remove LocalStack-specific settings
-unset TEST_MODE
-export AWS_REGION=us-east-1
-export DB_HOST=your-rds-endpoint
-export S3_BUCKET=your-production-bucket
-```
-
-## Technical Achievements
-
-This project successfully demonstrates:
-
-✅ **Complex Dependency Management**: Resolved psycopg2 → pg8000 migration for Lambda compatibility
-✅ **Cross-Platform Builds**: Docker-based Linux ARM64 package building on macOS
-✅ **LocalStack Integration**: Complete AWS service emulation with proper networking
-✅ **Event-Driven Architecture**: S3 → Lambda → Database workflow
-✅ **Cryptographic Implementation**: Post-quantum cryptography simulation
-✅ **Error Handling**: Comprehensive error handling and logging
-✅ **Automated Testing**: End-to-end test suite with verification
-
-## License
-
-[Add your license here]
