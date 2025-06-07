@@ -192,11 +192,15 @@ def encrypt_document(document_data, document_id=None):
     
     s3_key = f"encrypted/{document_id}.json"
     
+    # Add S3 server-side encryption as a second layer of protection
     s3_client.put_object(
         Bucket=bucket_name,
         Key=s3_key,
         Body=json.dumps(encrypted_package),
-        ContentType='application/json'
+        ContentType='application/json',
+        ServerSideEncryption='aws:kms',
+        # Use the same KMS key that was used for primary encryption
+        SSEKMSKeyId=encrypted_package['metadata']['kms_key_id']
     )
     
     # Log operation

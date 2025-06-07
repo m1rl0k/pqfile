@@ -280,11 +280,15 @@ def lambda_handler(event, context):
 
                     # Store encrypted document back to S3 in encrypted/ prefix
                     encrypted_key = object_key.replace('uploads/', 'encrypted/')
+                    # Store with S3 server-side encryption (SSE-KMS) as a second layer
                     s3_client.put_object(
                         Bucket=bucket_name,
                         Key=encrypted_key,
                         Body=json.dumps(encrypted_result),
-                        ContentType='application/json'
+                        ContentType='application/json',
+                        ServerSideEncryption='aws:kms',
+                        # Use the same KMS key that was used for primary encryption 
+                        SSEKMSKeyId=encrypted_result['metadata']['kms_key_id']
                     )
 
                     # Log the encryption operation
