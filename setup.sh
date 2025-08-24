@@ -20,7 +20,7 @@ fi
 
 # Install dependencies
 echo "Installing Python dependencies using $PIP_CMD..."
-$PIP_CMD install boto3 psycopg2-binary cryptography requests
+$PIP_CMD install boto3 pg8000 cryptography requests pqcrypto
 
 # Set up environment
 echo "Starting Docker environment..."

@@ -8,7 +8,7 @@ import json
 import time
 import base64
 import zipfile
-import boto3
+from config import get_boto3_client, get_logger
 import subprocess
 import requests
 import pg8000.native
@@ -25,22 +25,11 @@ DB_CONFIG = {
 BUCKET_NAME = "documents"
 TEST_DOCUMENT = "This is a test document for encryption and decryption. It needs to be exactly 100 characters to test properly." + "A" * 22
 
-# AWS clients
-s3_client = boto3.client(
-    's3',
-    endpoint_url=LOCALSTACK_ENDPOINT,
-    aws_access_key_id='test',
-    aws_secret_access_key='test',
-    region_name='us-east-1'
-)
+# Logging and AWS clients via shared config
+logger = get_logger(__name__)
 
-lambda_client = boto3.client(
-    'lambda',
-    endpoint_url=LOCALSTACK_ENDPOINT,
-    aws_access_key_id='test',
-    aws_secret_access_key='test',
-    region_name='us-east-1'
-)
+s3_client = get_boto3_client('s3')
+lambda_client = get_boto3_client('lambda')
 
 def create_lambda_function(name, handler):
     """Create a Lambda function in LocalStack with DB connection code patched"""
@@ -48,9 +37,8 @@ def create_lambda_function(name, handler):
         # Create a temporary directory for the Lambda package
         temp_dir = f"/tmp/packages/{name}"
         
-        # Copy Lambda code files to temp directory
-        lambda_dir = f"lambdas/{name}"
-        
+        # Copy Lambda code files to temp directory (unused variable removed)
+
         # Create zip file directly from the packages directory that already has dependencies
         zip_path = f"/tmp/{name}.zip"
         with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
@@ -238,9 +226,9 @@ def wait_for_lambda_ready(function_name, max_attempts=30):
             response = lambda_client.get_function(FunctionName=function_name)
             state = response.get('Configuration', {}).get('State')
             if state == 'Active':
-                print(f"Function {function_name} is now Active and ready!")
+                logger.info(f"Function {function_name} is now Active and ready!")
                 return True
-            print(f"Function {function_name} is in {state} state. Waiting... ({attempt+1}/{max_attempts})")
+            logger.info(f"Function {function_name} is in {state} state. Waiting... ({attempt+1}/{max_attempts})")
         except Exception as e:
             print(f"Error checking function state: {str(e)}")
         time.sleep(2)
@@ -334,7 +322,7 @@ def create_test_document():
             try:
                 response_data = json.loads(payload)
                 if 'errorMessage' in response_data:
-                    print(f"❌ Lambda function error: {response_data['errorMessage']}")
+                    print(f"Lambda function error: {response_data['errorMessage']}")
                     print(f"Error type: {response_data.get('errorType', 'Unknown')}")
                     if 'stackTrace' in response_data:
                         print("Stack trace:")
@@ -343,7 +331,7 @@ def create_test_document():
 
                     # If it's a module import error, let's try a different approach
                     if 'psycopg2' in response_data['errorMessage']:
-                        print("\n🔧 Detected psycopg2 import error. This is a common Lambda packaging issue.")
+                        print("\nDetected psycopg2 import error. This is a common Lambda packaging issue.")
                         print("The Lambda function cannot import the psycopg2 module.")
                         print("This usually happens when:")
                         print("1. The module wasn't properly packaged")
@@ -365,9 +353,9 @@ def create_test_document():
             # Check if encrypted file exists
             try:
                 s3_client.head_object(Bucket=BUCKET_NAME, Key=encrypted_key)
-                print(f"✅ Verified encrypted file exists")
+                print(f"Verified encrypted file exists")
             except Exception as e:
-                print(f"❌ Error: Encrypted file not found: {str(e)}")
+                print(f"Error: Encrypted file not found: {str(e)}")
                 # List contents of the bucket to see what's there
                 print("Listing bucket contents:")
                 objects = s3_client.list_objects_v2(Bucket=BUCKET_NAME)
@@ -383,7 +371,7 @@ def create_test_document():
         # Parse the response to get the encrypted file location
         processed_results = json.loads(response_body).get('processed', [])
         if not processed_results or 'encrypted' not in processed_results[0]:
-            print("❌ Error: No encrypted file location found in response")
+            print("Error: No encrypted file location found in response")
             return
 
         encrypted_s3_path = processed_results[0]['encrypted']
@@ -396,7 +384,7 @@ def create_test_document():
             encrypted_package = json.loads(response['Body'].read().decode('utf-8'))
             print("Successfully downloaded encrypted package")
         except Exception as e:
-            print(f"❌ Error downloading encrypted package: {e}")
+            print(f"Error downloading encrypted package: {e}")
             return
 
         # Now test decryption
@@ -423,15 +411,15 @@ def create_test_document():
         
         # Verify if decryption was successful
         if decrypted_text == TEST_DOCUMENT:
-            print("\n✅ SUCCESS: Document was correctly encrypted and decrypted!")
+            print("\nSUCCESS: Document was correctly encrypted and decrypted.")
         else:
-            print("\n❌ FAILURE: Decrypted content doesn't match original document")
+            print("\nFAILURE: Decrypted content doesn't match original document")
             
     except Exception as e:
         print(f"Error during test: {e}")
 
 if __name__ == "__main__":
-    print("🔐 PQFile Test Starting...", flush=True)
+    print("PQFile Test Starting...", flush=True)
 
     # Start Docker containers if they're not already running
     print("Checking if Docker containers are running...", flush=True)

@@ -6,60 +6,31 @@ import boto3
 import pg8000.native
 import base64
 import hashlib
+import logging
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.primitives import padding
+
+# Shared config and utilities
+from config import get_db_connection as cfg_db_conn, get_boto3_client, get_s3_bucket, get_logger, is_test_mode
 
 # Real post-quantum cryptography implementation using ML-KEM-768 (Kyber768) + AES
 import pqcrypto.kem.ml_kem_768
 
-# Configuration
-DB_CONFIG = {
-    'dbname': os.environ.get('DB_NAME', 'pqfile_db'),
-    'user': os.environ.get('DB_USER', 'postgres'),
-    'password': os.environ.get('DB_PASSWORD', 'postgres'),
-    'host': os.environ.get('DB_HOST', 'localhost'),
-    'port': os.environ.get('DB_PORT', '5432'),
-}
+# Logger
+logger = get_logger(__name__)
 
-# Initialize AWS clients
+# Initialize AWS clients via shared config
+
 def get_aws_clients():
-    """Initialize AWS clients based on environment"""
-    if os.environ.get('TEST_MODE') == 'true':
-        # LocalStack configuration - use localhost when running outside Docker
-        localstack_endpoint = os.environ.get('LOCALSTACK_ENDPOINT', 'http://localhost:4566')
-        return {
-            'kms': boto3.client(
-                'kms',
-                endpoint_url=localstack_endpoint,
-                aws_access_key_id='test',
-                aws_secret_access_key='test',
-                region_name='us-east-1'
-            ),
-            's3': boto3.client(
-                's3',
-                endpoint_url=localstack_endpoint,
-                aws_access_key_id='test',
-                aws_secret_access_key='test',
-                region_name='us-east-1'
-            )
-        }
-    else:
-        # Production AWS
-        return {
-            'kms': boto3.client('kms', region_name='us-east-1'),
-            's3': boto3.client('s3', region_name='us-east-1')
-        }
+    return {
+        'kms': get_boto3_client('kms'),
+        's3': get_boto3_client('s3'),
+    }
 
 # Database connection function
+
 def get_db_connection():
-    """Get a database connection using pg8000"""
-    return pg8000.native.Connection(
-        host=DB_CONFIG['host'],
-        port=DB_CONFIG['port'],
-        database=DB_CONFIG['dbname'],
-        user=DB_CONFIG['user'],
-        password=DB_CONFIG['password']
-    )
+    return cfg_db_conn()
 
 def create_kms_key(description):
     """Create a new KMS key for additional security layer"""
@@ -158,15 +129,15 @@ def encrypt_document(document_data, document_id=None):
     # Derive AES key
     aes_key = hashlib.sha256(shared_secret).digest()
     
-    # AES encryption
+    # AES encryption (CBC + PKCS7 padding). Consider AES-GCM for AEAD in production.
     iv = os.urandom(16)
     padder = padding.PKCS7(128).padder()
     padded_data = padder.update(document_data) + padder.finalize()
-    
+
     cipher = Cipher(algorithms.AES(aes_key), modes.CBC(iv))
     encryptor = cipher.encryptor()
     encrypted_data = encryptor.update(padded_data) + encryptor.finalize()
-    
+
     # Create encrypted package
     encrypted_package = {
         'key_id': key['id'],
@@ -205,6 +176,13 @@ def encrypt_document(document_data, document_id=None):
     
     # Log operation
     log_operation('encrypt', document_id, key['id'])
+
+    if is_test_mode():
+        logger.debug("Encrypted package created", extra={
+            "document_id": document_id,
+            "key_id": key['id'],
+            "ciphertext_len": len(encrypted_package['ciphertext']),
+        })
     
     return {
         'document_id': document_id,
@@ -225,6 +203,7 @@ def decrypt_document(document_id):
         response = s3_client.get_object(Bucket=bucket_name, Key=s3_key)
         encrypted_package = json.loads(response['Body'].read().decode('utf-8'))
     except Exception as e:
+        logger.error("S3 get_object failed", extra={"document_id": document_id, "error": str(e)})
         raise ValueError(f"Document not found: {document_id}")
     
     # Get key from isolated database
@@ -264,6 +243,12 @@ def decrypt_document(document_id):
     
     # Log operation
     log_operation('decrypt', document_id, key['id'])
+
+    if is_test_mode():
+        logger.debug("Decryption successful", extra={
+            "document_id": document_id,
+            "key_id": key['id']
+        })
     
     return document_data
 
@@ -284,7 +269,7 @@ def log_operation(operation_type, document_id, key_id=None):
                 VALUES (:document_id, :access_type)
             """, document_id=document_id, access_type=operation_type)
     except Exception as e:
-        print(f"Warning: Failed to log operation: {e}")
+        logger.warning("Failed to log operation", extra={"error": str(e), "operation_type": operation_type, "document_id": document_id, "key_id": key_id})
     finally:
         conn.close()
 
@@ -295,6 +280,8 @@ def lambda_handler(event, context):
         http_method = event.get('httpMethod', 'POST')
         path = event.get('path', '/')
         body = event.get('body', '{}')
+
+        logger.info("Request", extra={"method": http_method, "path": path})
         
         if isinstance(body, str):
             body = json.loads(body) if body else {}
@@ -314,7 +301,7 @@ def lambda_handler(event, context):
             }
             
     except Exception as e:
-        print(f"Error: {str(e)}")
+        logger.error("Unhandled error", extra={"error": str(e)})
         return {
             'statusCode': 500,
             'body': json.dumps({'error': str(e)})

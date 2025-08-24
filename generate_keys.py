@@ -5,28 +5,33 @@ Generate additional encryption keys for the PQFile system
 
 import os
 import base64
-import hashlib
 import datetime
 import pg8000.native
-import boto3
 import pqcrypto.kem.ml_kem_768
+from config import get_db_connection as cfg_db_conn, get_boto3_client, get_logger
 
 # Real Kyber768 constants
 KYBER_PUBLIC_KEY_SIZE = 1184
 KYBER_PRIVATE_KEY_SIZE = 2400
 
-# Database configuration
+# Database configuration (allow overrides via env)
 DB_CONFIG = {
-    'host': 'localhost',
-    'port': 5432,
-    'database': 'pqfile_db',
-    'user': 'postgres',
-    'password': 'postgres'
+    'host': os.getenv('DB_HOST', 'localhost'),
+    'port': int(os.getenv('DB_PORT', '5432')),
+    'database': os.getenv('DB_NAME', 'pqfile_db'),
+    'user': os.getenv('DB_USER', 'postgres'),
+    'password': os.getenv('DB_PASSWORD', 'postgres')
 }
+
+logger = get_logger(__name__)
 
 def get_db_connection():
     """Get a database connection"""
-    return pg8000.native.Connection(**DB_CONFIG)
+    # Prefer shared config connection if available
+    try:
+        return cfg_db_conn()
+    except Exception:
+        return pg8000.native.Connection(**DB_CONFIG)
 
 def generate_secure_key_pair():
     """Generate a real ML-KEM-768 (Kyber768) key pair for post-quantum security"""
@@ -38,14 +43,8 @@ def generate_secure_key_pair():
 def create_kms_key():
     """Create a KMS key for additional security"""
     try:
-        # Configure KMS client for LocalStack
-        kms_client = boto3.client(
-            'kms',
-            endpoint_url='http://localhost:4566',
-            aws_access_key_id='test',
-            aws_secret_access_key='test',
-            region_name='us-east-1'
-        )
+        # Configure KMS client for LocalStack (allow overrides via env)
+        kms_client = get_boto3_client('kms')
         
         # Create KMS key
         response = kms_client.create_key(
@@ -117,7 +116,7 @@ def generate_multiple_keys(count=5):
             'private_key_size': len(private_key)
         })
         
-        print(f"✅ Generated key ID {key_id}")
+        logger.info("Generated key", extra={"key_id": key_id})
     
     return generated_keys
 
@@ -138,16 +137,11 @@ def show_key_pool_status():
             ORDER BY status
         """)
         
-        print("\n📊 Key Pool Status:")
+        logger.info("Key Pool Status:")
         print("=" * 60)
         for row in rows:
             status, count, avg_usage, oldest, newest = row
-            print(f"Status: {status}")
-            print(f"  Count: {count}")
-            print(f"  Average Usage: {avg_usage:.1f}")
-            print(f"  Oldest: {oldest}")
-            print(f"  Newest: {newest}")
-            print()
+            logger.info("Status", extra={"status": status, "count": count, "avg_usage": float(avg_usage or 0), "oldest": str(oldest), "newest": str(newest)})
         
         # Get individual key details
         rows = conn.run("""
@@ -158,19 +152,16 @@ def show_key_pool_status():
             LIMIT 10
         """)
         
-        print("🔑 Recent Keys:")
-        print("=" * 60)
-        print("ID    Status   Usage  Created                    Pub/Priv Key Sizes")
-        print("-" * 60)
+        logger.info("Recent Keys (showing up to 10)")
         for row in rows:
             key_id, status, usage, created, pub_len, priv_len = row
-            print(f"{key_id:<5} {status:<8} {usage:<6} {created} {pub_len}/{priv_len}")
+            logger.info("Key", extra={"key_id": key_id, "status": status, "usage": usage, "created": str(created), "pub_len": pub_len, "priv_len": priv_len})
         
     finally:
         conn.close()
 
 if __name__ == '__main__':
-    print("🔐 PQFile Key Generation Tool")
+    logger.info("PQFile Key Generation Tool")
     print("=" * 40)
     
     # Show current status
@@ -179,13 +170,13 @@ if __name__ == '__main__':
     # Generate new keys
     try:
         keys = generate_multiple_keys(3)
-        print(f"\n✅ Successfully generated {len(keys)} new encryption keys!")
+        logger.info("Successfully generated new encryption keys", extra={"count": len(keys)})
         
         # Show updated status
-        print("\n📈 Updated Key Pool Status:")
+        logger.info("Updated Key Pool Status:")
         show_key_pool_status()
         
     except Exception as e:
-        print(f"❌ Error generating keys: {e}")
+        logger.error("Error generating keys", extra={"error": str(e)})
         import traceback
         traceback.print_exc()

@@ -66,6 +66,14 @@ CREATE INDEX idx_access_logs_document_id ON access_logs(document_id);
 CREATE INDEX idx_access_logs_access_type ON access_logs(access_type);
 CREATE INDEX idx_key_rotations_status ON key_rotations(status);
 
+-- Additional composite indexes for query patterns used by the application
+CREATE INDEX IF NOT EXISTS idx_access_logs_doc_accessed_at ON access_logs(document_id, accessed_at DESC);
+CREATE INDEX IF NOT EXISTS idx_encryption_keys_status_usage ON encryption_keys(status, usage_count DESC);
+
+-- Enforce allowed access types for audit log integrity
+ALTER TABLE access_logs
+    ADD CONSTRAINT access_type_check CHECK (access_type IN ('encrypt','decrypt','upload','download'));
+
 -- Function to automatically update last_accessed_at when a document is downloaded
 CREATE OR REPLACE FUNCTION update_document_last_accessed()
 RETURNS TRIGGER AS $$
